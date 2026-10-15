@@ -1,0 +1,28 @@
+CREATE DATABASE IF NOT EXISTS stockflow CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE stockflow;
+CREATE TABLE IF NOT EXISTS roles (
+ id INT AUTO_INCREMENT PRIMARY KEY, nombre VARCHAR(30) NOT NULL UNIQUE
+);
+INSERT INTO roles(id,nombre) VALUES (1,'admin'),(2,'encargado'),(3,'empleado')
+ ON DUPLICATE KEY UPDATE nombre=VALUES(nombre);
+CREATE TABLE IF NOT EXISTS usuarios (
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ nombre VARCHAR(100) NOT NULL,
+ email VARCHAR(150) NOT NULL UNIQUE,
+ password_hash VARCHAR(255) NULL,
+ rol_id INT NOT NULL DEFAULT 3,
+ email_verificado BOOLEAN NOT NULL DEFAULT FALSE,
+ activo BOOLEAN NOT NULL DEFAULT TRUE,
+ creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT fk_usuarios_roles FOREIGN KEY (rol_id) REFERENCES roles(id)
+);
+CREATE TABLE IF NOT EXISTS sesiones (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ usuario_id INT NOT NULL,
+ refresh_token_hash CHAR(64) NOT NULL UNIQUE,
+ expira_en DATETIME NOT NULL,
+ revocado_en DATETIME NULL,
+ creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT fk_sesiones_usuarios FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+ INDEX idx_sesiones_usuario (usuario_id)
+);

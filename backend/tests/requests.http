@@ -1,0 +1,78 @@
+@base = http://localhost:3000/api
+@access = PEGAR_ACCESS_TOKEN
+@refresh = PEGAR_REFRESH_TOKEN
+
+### Salud
+GET {{base}}/health
+
+### Registro
+POST {{base}}/auth/register
+Content-Type: application/json
+
+{"nombre":"Ana Ejemplo","email":"ana@example.com","password":"ClaveSegura123"}
+
+### Login
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{"email":"ana@example.com","password":"ClaveSegura123"}
+
+### Perfil
+GET {{base}}/auth/me
+Authorization: Bearer {{access}}
+
+### Recurso protegido (debe funcionar para empleado)
+GET {{base}}/demo/empleado
+Authorization: Bearer {{access}}
+
+### Recurso prohibido para empleado (403)
+GET {{base}}/demo/admin
+Authorization: Bearer {{access}}
+
+### Renovar: reemplazar tokens por los NUEVOS de la respuesta
+POST {{base}}/auth/refresh
+Content-Type: application/json
+
+{"refreshToken":"{{refresh}}"}
+
+### Cerrar sesión usando refresh actual
+POST {{base}}/auth/logout
+Content-Type: application/json
+
+{"refreshToken":"{{refresh}}"}
+
+### Crear categoría (admin/encargado)
+POST {{base}}/categories
+Authorization: Bearer {{access}}
+Content-Type: application/json
+
+{"nombre":"Almacén","descripcion":"Comestibles"}
+
+### Crear proveedor
+POST {{base}}/suppliers
+Authorization: Bearer {{access}}
+Content-Type: application/json
+
+{"nombre":"Distribuidora","email":"ventas@example.com"}
+
+### Crear producto: reemplazar IDs con los obtenidos
+POST {{base}}/products
+Authorization: Bearer {{access}}
+Content-Type: application/json
+
+{"nombre":"Yerba","sku":"YERBA-001","precio":"4500.00","categoria_id":1,"proveedor_id":1,"stock_minimo":5}
+
+### Entrada
+POST {{base}}/movements
+Authorization: Bearer {{access}}
+Content-Type: application/json
+
+{"producto_id":1,"tipo":"entrada","cantidad":10,"motivo":"Compra inicial"}
+
+### Lista filtrada
+GET {{base}}/products?page=1&limit=20&q=Yerba
+Authorization: Bearer {{access}}
+
+### Historial (empleado: solamente sus movimientos)
+GET {{base}}/movements
+Authorization: Bearer {{access}}

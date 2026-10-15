@@ -1,0 +1,11 @@
+{
+  "name": "stockflow",
+  "private": true,
+  "scripts": {
+    "backend": "npm --prefix backend run dev",
+    "mobile": "npm --prefix mobile start",
+    "typecheck": "npm --prefix backend run typecheck && npm --prefix mobile run typecheck",
+    "test": "npm --prefix backend test && npm --prefix mobile test",
+    "test:integration": "npm --prefix backend run test:integration"
+  }
+}
