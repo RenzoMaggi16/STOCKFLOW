@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { IdentityBanner, SectionHeading } from "../components/WorkspaceDesign";
 import { Text } from "react-native";
 import Svg, { Rect, Text as SvgText } from "react-native-svg";
 import { ResourceSelect } from "../components/EntityForm";
@@ -42,6 +43,8 @@ export default function Reports() {
         title="Reportes"
         subtitle="Métricas calculadas sobre tu inventario real"
       >
+        <IdentityBanner title="Convertí tus datos en decisiones." subtitle="Revisá el valor de venta de tus existencias y la actividad de tu inventario." badge="REPORTES DEL NEGOCIO" icon="bar-chart-outline"/>
+        <Card><SectionHeading title="Elegí qué analizar" icon="options-outline"/>
         <ResourceSelect
           resource="/categories"
           label="Filtrar categoría"
@@ -59,8 +62,10 @@ export default function Reports() {
           error={totals.error}
           retry={totals.load}
         />
+        </Card>
         <Card>
-          <Text style={styles.subtitle}>Valor actual de existencias</Text>
+          <Text style={styles.subtitle}>Valor de existencias a precio de venta</Text>
+          <Text style={styles.subtitle}>Estimación: no representa ventas realizadas ni ganancia.</Text>
           <Text style={styles.title}>{money(totals.data?.summary.valor)}</Text>
           <Text style={styles.subtitle}>
             Sin stock: {totals.data?.summary.sin_stock || 0} · Bajo mínimo:{" "}

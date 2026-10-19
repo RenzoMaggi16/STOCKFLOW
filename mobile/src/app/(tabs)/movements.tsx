@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { IdentityBanner, SectionHeading } from "../../components/WorkspaceDesign";
 import { Text } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { useAuth } from "../../contexts/AuthContext";
+import { useBusiness } from "../../contexts/BusinessContext";
 import { useResource } from "../../hooks/useResource";
 import { api } from "../../services/api";
 import { errorMessage } from "../../services/session";
@@ -18,7 +19,7 @@ import {
 } from "../../components/ui";
 import { EntityForm } from "../../components/EntityForm";
 export default function Movements() {
-  const { user } = useAuth();
+  const { role } = useBusiness();
   const params = useLocalSearchParams();
   const [open, setOpen] = useState(false),
     [tipo, setTipo] = useState("entrada"),
@@ -30,11 +31,12 @@ export default function Movements() {
     <Page
       title="Movimientos"
       subtitle={
-        user?.rol === "empleado"
+        role === "empleado"
           ? "Tu historial de operaciones"
           : "Historial completo del inventario"
       }
     >
+      <IdentityBanner title="Cada unidad tiene una historia." subtitle="Registrá entradas y salidas para que tu equipo trabaje con existencias actualizadas." badge="ACTIVIDAD DEL INVENTARIO" icon="swap-horizontal-outline"/>
       <Button title="Registrar movimiento" onPress={() => setOpen(true)} />
       {!!message && <Text style={styles.pill}>{message}</Text>}
       <Status
@@ -45,6 +47,7 @@ export default function Movements() {
       />
       {r.data?.items.map((m: any) => (
         <Card key={m.id}>
+          <SectionHeading title={m.producto} subtitle={m.tipo.toUpperCase()} icon={m.tipo === "salida" ? "arrow-up-outline" : "arrow-down-outline"}/>
           <Text style={styles.label}>
             {m.producto} · {m.tipo.toUpperCase()}
           </Text>
@@ -66,6 +69,7 @@ export default function Movements() {
           setPending(null);
         }}
       >
+        <SectionHeading title="Actualizá tus existencias" subtitle="Revisá los datos antes de confirmar el movimiento." icon="swap-horizontal-outline"/>
         <Choices
           value={tipo}
           onChange={(v) => {
@@ -75,7 +79,7 @@ export default function Movements() {
           options={[
             { value: "entrada", label: "Entrada" },
             { value: "salida", label: "Salida" },
-            ...(user?.rol !== "empleado"
+            ...(role !== "empleado"
               ? [{ value: "ajuste", label: "Ajuste" }]
               : []),
           ]}

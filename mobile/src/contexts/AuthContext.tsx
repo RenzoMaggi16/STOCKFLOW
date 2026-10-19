@@ -12,7 +12,6 @@ export type User = {
   id: number;
   nombre: string;
   email: string;
-  rol: "admin" | "encargado" | "empleado";
   email_verificado: boolean;
   segundo_factor: boolean;
 };

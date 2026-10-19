@@ -21,17 +21,20 @@ router.get("/providers", (_req, res) =>
 );
 router.post("/:provider/start", async (req, res) => {
   const provider = oauth.providerSchema.parse(req.params.provider);
-  const { challenge } = z
-    .object({ challenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/) })
+  const { challenge, platform } = z
+    .object({ challenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/), platform: z.enum(["web", "native"]).default("native") })
     .strict()
     .parse(req.body);
-  res.json({ success: true, data: await oauth.start(provider, challenge) });
+  res.json({ success: true, data: await oauth.start(provider, challenge, platform) });
 });
 router.get("/:provider/callback", async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Referrer-Policy", "no-referrer");
+  let target: string | undefined;
   try {
     const provider = oauth.providerSchema.parse(req.params.provider);
+    const callbackState = z.string().length(64).parse(req.query.state);
+    target = await oauth.returnTarget(provider, callbackState);
     if (req.query.error)
       throw new HttpError(401, "Cancelado", "OAUTH_CANCELLED");
     const { state, code } = z
@@ -41,10 +44,11 @@ router.get("/:provider/callback", async (req, res) => {
       })
       .parse(req.query);
     const ticket = await oauth.complete(provider, state, code);
-    res.redirect(`stockflow://oauth?ticket=${ticket}`);
+    res.redirect(`${target}?ticket=${ticket}`);
   } catch (e) {
     const error = e instanceof HttpError ? e.code : "OAUTH_FAILED";
-    res.redirect(`stockflow://oauth?error=${encodeURIComponent(error)}`);
+    if (target) res.redirect(`${target}?error=${encodeURIComponent(error)}`);
+    else res.status(400).send("Solicitud de acceso inválida o vencida. Volvé a StockFlow e intentá nuevamente.");
   }
 });
 router.post("/exchange", async (req, res) => {

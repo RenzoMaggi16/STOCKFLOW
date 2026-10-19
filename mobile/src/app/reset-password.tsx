@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { session } from "../services/api";
 import { Page, Card } from "../components/ui";
 import { EntityForm } from "../components/EntityForm";
+import { IdentityBanner } from "../components/WorkspaceDesign";
 export default function Reset() {
   const { challengeId } = useLocalSearchParams();
   return (
@@ -9,6 +10,7 @@ export default function Reset() {
       title="Nueva contraseña"
       subtitle="Ingresá el código recibido por correo y una contraseña nueva."
     >
+      <IdentityBanner title="Recuperá tu espacio." subtitle="Elegí una contraseña nueva para volver a trabajar con tranquilidad." badge="RECUPERACIÓN DE ACCESO" icon="key-outline"/>
       <Card>
         <EntityForm
           fields={[

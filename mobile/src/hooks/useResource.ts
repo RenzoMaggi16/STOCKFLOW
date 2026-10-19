@@ -2,13 +2,22 @@ import { useCallback, useState, useRef } from "react";
 import { useFocusEffect } from "expo-router";
 import { api } from "../services/api";
 import { errorMessage } from "../services/session";
+import { useBusiness } from "../contexts/BusinessContext";
+import { useAuth } from "../contexts/AuthContext";
 export function useResource<T = any>(url: string) {
+  const { revision, active } = useBusiness();
+  const { user } = useAuth();
+  const enabled = !!user?.email_verificado && (/^\/(businesses|invitations)(\/|$)/.test(url) || !!active);
   const generation = useRef(0);
+  const [scope, setScope] = useState(revision);
   const [data, setData] = useState<T | null>(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState("");
   const load = useCallback(async () => {
     const current = ++generation.current;
+    setScope(revision);
+    setData(null);
+    if (!enabled) { setLoading(false); setError(""); return; }
     setLoading(true);
     setError("");
     try {
@@ -19,7 +28,7 @@ export function useResource<T = any>(url: string) {
     } finally {
       if (current === generation.current) setLoading(false);
     }
-  }, [url]);
+  }, [url, revision, enabled]);
   useFocusEffect(
     useCallback(() => {
       void load();
@@ -28,5 +37,5 @@ export function useResource<T = any>(url: string) {
       };
     }, [load]),
   );
-  return { data, loading, error, load };
+  return { data: scope === revision ? data : null, loading: scope !== revision || loading, error: scope === revision ? error : "", load };
 }

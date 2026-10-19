@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import {
   View,
   Text,
@@ -94,10 +95,11 @@ export function Page({
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={styles.body}
         >
-          <Text accessibilityRole="header" style={styles.title}>
+          <View style={{gap:8,marginBottom:4}}><View style={{height:4,width:32,borderRadius:4,backgroundColor:colors.green,marginBottom:4}}/><Text accessibilityRole="header" style={styles.title}>
             {title}
           </Text>
           {!!subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+          </View>
           {children}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -152,6 +154,8 @@ export function Input({
   secure = false,
   numeric = false,
   multiline = false,
+  onSubmit,
+  disabled = false,
 }: {
   label: string;
   value: string;
@@ -159,20 +163,29 @@ export function Input({
   secure?: boolean;
   numeric?: boolean;
   multiline?: boolean;
+  onSubmit?: () => void;
+  disabled?: boolean;
 }) {
+  const [revealed, setRevealed] = useState(false);
   return (
     <View style={{ gap: 6 }}>
       <Text style={styles.label}>{label}</Text>
+      <View style={{ position: "relative" }}>
       <TextInput
         accessibilityLabel={label}
-        style={styles.input}
+        style={[styles.input, secure && { paddingRight: 85 }]}
         value={value}
         onChangeText={onChange}
-        secureTextEntry={secure}
+        secureTextEntry={secure && !revealed}
         autoCapitalize="none"
         keyboardType={numeric ? "decimal-pad" : "default"}
         multiline={multiline}
+        editable={!disabled}
+        onSubmitEditing={onSubmit}
+        returnKeyType={onSubmit ? "done" : undefined}
       />
+      {secure && <Pressable accessibilityRole="button" accessibilityLabel={revealed ? "Ocultar contraseña" : "Mostrar contraseña"} onPress={() => setRevealed(!revealed)} style={{ position: "absolute", right: 8, top: 4, minHeight: 44, justifyContent: "center", paddingHorizontal: 8 }}><Text style={{color: colors.green, fontWeight: "600"}}>{revealed ? "Ocultar" : "Mostrar"}</Text></Pressable>}
+      </View>
     </View>
   );
 }
@@ -200,9 +213,11 @@ export function Status({
       )}
       {!loading && !error && empty && (
         <Card>
+          <View style={{padding:12,alignItems:"center",gap:10}}><Ionicons name="file-tray-outline" size={34} color={colors.green}/><Text style={styles.label}>Todo listo para empezar</Text>
           <Text style={styles.subtitle}>
             Todavía no hay registros para mostrar.
           </Text>
+          </View>
         </Card>
       )}
     </>
@@ -223,8 +238,10 @@ export function Sheet({
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
         <Page title={title}>
-          <Button title="Volver" secondary onPress={onClose} />
+          <View style={{alignItems:"flex-start"}}><Button title="Volver" secondary onPress={onClose} /></View>
+          <View style={{backgroundColor:"white",padding:20,borderRadius:20,borderWidth:1,borderColor:colors.border,gap:16}}>
           {children}
+          </View>
         </Page>
       </SafeAreaView>
     </Modal>

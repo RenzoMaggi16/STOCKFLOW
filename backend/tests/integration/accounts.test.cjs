@@ -66,6 +66,9 @@ test("Cuentas, reportes y correo SMTP local real", async (t) => {
       "UPDATE usuarios SET rol_id=1,email_verificado=1 WHERE id=?",
       [admin.user.id],
     );
+    const businesses = require("../../dist/services/businesses.service");
+    const business = await businesses.create(admin.user.id, { nombre: "Cuentas test" });
+    await db.execute("INSERT INTO negocio_usuarios(negocio_id,usuario_id,rol) VALUES(?,?,'empleado')", [business.id, employee.user.id]);
     server = app.listen(0, "127.0.0.1");
     await new Promise((resolve) => server.once("listening", resolve));
     const base = `http://127.0.0.1:${server.address().port}/api`;
@@ -74,6 +77,7 @@ test("Cuentas, reportes y correo SMTP local real", async (t) => {
         method,
         headers: {
           "content-type": "application/json",
+          "X-Business-Id": String(business.id),
           ...(token ? { authorization: `Bearer ${token}` } : {}),
         },
         ...(body ? { body: JSON.stringify(body) } : {}),
@@ -144,21 +148,21 @@ test("Cuentas, reportes y correo SMTP local real", async (t) => {
       "administración, autoexclusión, permisos y revocación de access",
       async () => {
         assert.equal(
-          (await request("GET", "/users", null, employee.accessToken)).status,
+          (await request("GET", `/businesses/${business.id}/members`, null, employee.accessToken)).status,
           403,
         );
         const list = await request(
           "GET",
-          "/users?q=Empleado",
+          `/businesses/${business.id}/members`,
           null,
           admin.accessToken,
         );
-        assert.equal(list.data.total, 1);
+        assert.equal(list.data.items.length, 2);
         assert.equal(
           (
             await request(
               "PATCH",
-              `/users/${admin.user.id}/role`,
+              `/businesses/${business.id}/members/${admin.user.id}`,
               { rol: "empleado" },
               admin.accessToken,
             )
@@ -169,8 +173,8 @@ test("Cuentas, reportes y correo SMTP local real", async (t) => {
           (
             await request(
               "PATCH",
-              `/users/${admin.user.id}/status`,
-              { activo: false },
+              `/businesses/${business.id}/members/${admin.user.id}`,
+              { estado: "inactivo" },
               admin.accessToken,
             )
           ).status,
@@ -178,14 +182,14 @@ test("Cuentas, reportes y correo SMTP local real", async (t) => {
         );
         const changed = await request(
           "PATCH",
-          `/users/${employee.user.id}/role`,
+          `/businesses/${business.id}/members/${employee.user.id}`,
           { rol: "encargado" },
           admin.accessToken,
         );
         assert.equal(changed.status, 200);
         assert.equal(
           (await request("GET", "/auth/me", null, employee.accessToken)).status,
-          401,
+          200,
         );
         const login = await auth.login(employee.user.email, "ClaveSegura123");
         employee.accessToken = login.accessToken;
@@ -288,9 +292,7 @@ test("Cuentas, reportes y correo SMTP local real", async (t) => {
           ).status,
           422,
         );
-        await db.execute("UPDATE usuarios SET rol_id=3 WHERE id=?", [
-          employee.user.id,
-        ]);
+        await db.execute("UPDATE negocio_usuarios SET rol='empleado' WHERE negocio_id=? AND usuario_id=?", [business.id, employee.user.id]);
         assert.equal(
           (await request("GET", "/reports/summary", null, employee.accessToken))
             .status,
@@ -397,6 +399,37 @@ test("Cuentas, reportes y correo SMTP local real", async (t) => {
         );
       },
     );
+    await t.test("Discord: identidad, permisos y consumo único", async () => {
+      const oauth = require("../../dist/services/oauth.service");
+      const env = require("../../dist/config/env").env;
+      const originalFetch = global.fetch;
+      env.DISCORD_CLIENT_ID = "test-discord";
+      env.DISCORD_CLIENT_SECRET = "test-secret";
+      const verifier = "d".repeat(64);
+      const started = await oauth.start("discord", crypto.createHash("sha256").update(verifier).digest("base64url"), "web");
+      const url = new URL(started.url);
+      assert.equal(url.searchParams.get("scope"), "identify email");
+      global.fetch = async (url) => {
+        if (url === "https://discord.com/api/oauth2/token") return Response.json({ access_token: "test-token" });
+        if (url === "https://discord.com/api/v10/users/@me") return Response.json({ id: "123456789", email: "discord@example.com", username: "Discord test", verified: true });
+        throw new Error("Unexpected request");
+      };
+      try {
+        const state = url.searchParams.get("state");
+        assert.equal(await oauth.returnTarget("discord", state), `${env.WEB_APP_URL}/oauth`);
+        await assert.rejects(oauth.returnTarget("google", state));
+        const ticket = await oauth.complete("discord", state, "test-code");
+        await assert.rejects(oauth.complete("discord", state, "test-code"));
+        const session = await oauth.exchange(ticket, verifier);
+        assert.equal(session.user.email_verificado, true);
+        assert.equal(session.user.rol, undefined);
+        await assert.rejects(oauth.exchange(ticket, verifier));
+      } finally {
+        global.fetch = originalFetch;
+        env.DISCORD_CLIENT_ID = "";
+        env.DISCORD_CLIENT_SECRET = "";
+      }
+    });
     await t.test(
       "OAuth sin credenciales informa bloqueo, ticket usa prueba de posesión",
       async () => {

@@ -22,7 +22,15 @@ StockFlow organiza el inventario de un comercio. Permite saber qué productos ex
 
 **¿Qué hace un middleware?** Intercepta una solicitud antes de la operación. En StockFlow valida JWT, usuario activo, versión de sesión, correo verificado y rol. Otro middleware uniforma errores sin enviar trazas al cliente.
 
-**¿Cómo funcionan los roles?** El registro público solo crea empleados. El administrador gestiona usuarios y bajas; el encargado crea y edita inventario y consulta reportes; el empleado consulta y registra entradas/salidas. El rol se vuelve a leer en MySQL, no se confía en campos enviados por la app.
+**¿Cómo funcionan los roles?** El registro público crea una identidad sin privilegios globales. `negocio_usuarios` relaciona persona, negocio, rol y estado. Crear un negocio asigna admin al creador dentro de la misma transacción. El rol se vuelve a leer en MySQL para cada negocio; la misma persona puede ser admin de A y empleado de B.
+
+**¿Cómo se aíslan los negocios?** Cada recurso lleva `negocio_id`. La API valida la membresía correspondiente al encabezado `X-Business-Id` y filtra consultas por ese negocio. Saber el ID de un producto ajeno no permite accederlo. Claves foráneas compuestas impiden asociar categorías o proveedores de otro negocio, incluso mediante SQL directo.
+
+**¿Cómo se invita a empleados?** Un admin elige email y rol. Generamos 32 bytes aleatorios y guardamos solo su hash; el enlace vence en siete días. Aceptar exige autenticación y verificación del mismo correo. La transacción bloquea negocio e invitación, inserta la membresía y marca aceptación de manera atómica. No hay doble aceptación ni promoción automática por poseer un enlace.
+
+**¿Qué ocurre al cambiar de negocio?** No se cambia de cuenta ni de JWT. Se consulta la membresía, se limpia la navegación del inventario y se descartan respuestas tardías del contexto anterior. La próxima petición usa el negocio seleccionado, que el servidor vuelve a autorizar.
+
+**¿Qué pasó con los datos anteriores?** La migración conserva las filas y las asigna a un negocio histórico desactivado, sin integrantes. No se presume quién es el propietario. Su recuperación requiere una asignación explícita autorizada.
 
 **¿Cómo evitan stock negativo?** La API bloquea la fila del producto, calcula el nuevo stock y rechaza una salida excesiva. MySQL también tiene una restricción CHECK. Una prueba envía dos salidas simultáneas y verifica que solo una pueda consumir las unidades disponibles.
 
@@ -44,11 +52,11 @@ StockFlow organiza el inventario de un comercio. Permite saber qué productos ex
 
 ## Demostración sugerida
 
-1. Mostrar roles y consultas del dashboard.
+1. Registrar/verificar una cuenta y crear un negocio; explicar la membresía admin.
 2. Crear categoría, proveedor y producto; explicar stock inicial cero.
 3. Registrar entrada 10 y salida 3; mostrar stock 7 e historial.
 4. Intentar salida 8 y explicar el rechazo.
-5. Comparar empleado con administrador; mostrar un 403 real.
+5. Invitar otra cuenta, aceptar como empleado y comparar permisos. Crear un segundo negocio y mostrar que no comparte productos; el mismo SKU puede existir en ambos.
 6. Ver reportes calculados y editar perfil.
 7. Mostrar pruebas de concurrencia y rollback.
 8. Explicar qué fue probado en Android y qué continúa pendiente, sin presentar integraciones sin credenciales como realizadas.

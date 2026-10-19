@@ -15,3 +15,4 @@ mobile/android/
 mobile/ios/
 
 .claude/
+.local-backups/

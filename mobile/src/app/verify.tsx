@@ -5,18 +5,20 @@ import { session } from "../services/api";
 import { errorMessage } from "../services/session";
 import { Page, Card, Button, Status } from "../components/ui";
 import { EntityForm } from "../components/EntityForm";
+import { IdentityBanner } from "../components/WorkspaceDesign";
 export default function Verify() {
   const auth = useAuth();
   const [id, setId] = useState(""),
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false);
   if (!auth.user) return <Redirect href="/login" />;
-  if (auth.user.email_verificado) return <Redirect href="/(tabs)" />;
+  if (auth.user.email_verificado) return <Redirect href="/" />;
   return (
     <Page
       title="Verificá tu correo"
       subtitle={`Enviaremos un código a ${auth.user.email}. Dura 10 minutos.`}
     >
+      <IdentityBanner title="Un paso más para empezar." subtitle="Confirmá tu correo para crear tu negocio y trabajar con tu equipo." badge="PROTEGÉ TU CUENTA" icon="mail-outline"/>
       <Button
         title="Enviar / reenviar código"
         disabled={busy}
@@ -51,7 +53,7 @@ export default function Verify() {
                 code: v.code,
               });
               await auth.reload();
-              router.replace("/(tabs)");
+              router.replace("/");
             }}
           />
         </Card>

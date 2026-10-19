@@ -1,4 +1,4 @@
-import { randomBytes, createHash, createHmac } from "node:crypto";
+import { randomBytes, createHash } from "node:crypto";
 import { z } from "zod";
 import type { RowDataPacket, ResultSetHeader } from "mysql2/promise";
 import { env } from "../config/env";
@@ -7,7 +7,7 @@ import { HttpError } from "../utils/errors";
 import { hashToken } from "./tokens";
 import { transaction } from "./inventory.service";
 import { socialSession } from "./auth.service";
-export const providerSchema = z.enum(["google", "github", "facebook"]);
+export const providerSchema = z.enum(["google", "github", "discord"]);
 type Provider = z.infer<typeof providerSchema>;
 function config(p: Provider) {
   const configs = {
@@ -25,12 +25,12 @@ function config(p: Provider) {
       token: "https://github.com/login/oauth/access_token",
       scope: "read:user user:email",
     },
-    facebook: {
-      id: env.FACEBOOK_CLIENT_ID,
-      secret: env.FACEBOOK_CLIENT_SECRET,
-      authorize: `https://www.facebook.com/${env.FACEBOOK_GRAPH_VERSION}/dialog/oauth`,
-      token: `https://graph.facebook.com/${env.FACEBOOK_GRAPH_VERSION}/oauth/access_token`,
-      scope: "email,public_profile",
+    discord: {
+      id: env.DISCORD_CLIENT_ID,
+      secret: env.DISCORD_CLIENT_SECRET,
+      authorize: "https://discord.com/oauth2/authorize",
+      token: "https://discord.com/api/oauth2/token",
+      scope: "identify email",
     },
   };
   return configs[p];
@@ -44,7 +44,7 @@ export const availability = () =>
       !!config(p).id && !!config(p).secret,
     ]),
   );
-export async function start(p: Provider, challenge: string) {
+export async function start(p: Provider, challenge: string, platform: "web" | "native" = "native") {
   const c = config(p);
   if (!c.id || !c.secret)
     throw new HttpError(
@@ -54,8 +54,8 @@ export async function start(p: Provider, challenge: string) {
     );
   const state = randomBytes(32).toString("hex");
   await pool.execute(
-    "INSERT INTO oauth_flujos(state_hash,proveedor,challenge,expira_en) VALUES(?,?,?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 5 MINUTE))",
-    [hashToken(state), p, challenge],
+    "INSERT INTO oauth_flujos(state_hash,proveedor,challenge,expira_en,plataforma) VALUES(?,?,?,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 5 MINUTE),?)",
+    [hashToken(state), p, challenge, platform],
   );
   const url = new URL(c.authorize);
   url.search = new URLSearchParams({
@@ -83,6 +83,16 @@ async function json(url: string, init?: RequestInit): Promise<any> {
       "OAUTH_FAILED",
     );
   return data;
+}
+export async function returnTarget(p: Provider, state: string) {
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    "SELECT plataforma FROM oauth_flujos WHERE state_hash=? AND proveedor=? AND expira_en>UTC_TIMESTAMP()",
+    [hashToken(state), p],
+  );
+  if (!rows[0]) throw new HttpError(401, "Solicitud social vencida", "INVALID_STATE");
+  return rows[0].plataforma === "web"
+    ? `${env.WEB_APP_URL.replace(/\/$/, "")}/oauth`
+    : "stockflow://oauth";
 }
 export async function complete(p: Provider, state: string, code: string) {
   const c = config(p);
@@ -151,16 +161,11 @@ export async function complete(p: Provider, state: string, code: string) {
     name = u.name || u.login;
     verified = !!chosen;
   } else {
-    const proof = createHmac("sha256", c.secret)
-      .update(token.access_token)
-      .digest("hex");
-    const u = await json(
-      `https://graph.facebook.com/${env.FACEBOOK_GRAPH_VERSION}/me?fields=id,name,email&appsecret_proof=${proof}`,
-      { headers },
-    );
+    const u = await json("https://discord.com/api/v10/users/@me", { headers });
     sub = u.id;
     email = u.email;
-    name = u.name;
+    name = u.global_name || u.username;
+    verified = u.verified === true;
   }
   sub = z.string().min(1).max(255).parse(sub);
   email = z.email().max(150).parse(email).toLowerCase();

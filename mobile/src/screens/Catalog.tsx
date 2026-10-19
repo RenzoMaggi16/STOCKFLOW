@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Text } from "react-native";
+import { Text, View } from "react-native";
+import { IdentityBanner, SectionHeading, design } from "../components/WorkspaceDesign";
 import { router } from "expo-router";
-import { useAuth } from "../contexts/AuthContext";
+import { useBusiness } from "../contexts/BusinessContext";
 import { useResource } from "../hooks/useResource";
 import { api } from "../services/api";
 import { errorMessage } from "../services/session";
@@ -19,7 +20,7 @@ import {
 import { EntityForm, type Field } from "../components/EntityForm";
 import { Guard } from "../components/Guard";
 export function Catalog({ entity }: { entity: "categories" | "suppliers" }) {
-  const { user } = useAuth();
+  const { role } = useBusiness();
   const [q, setQ] = useState(""),
     [page, setPage] = useState(1),
     [editing, setEditing] = useState<any>(null);
@@ -37,6 +38,8 @@ export function Catalog({ entity }: { entity: "categories" | "suppliers" }) {
   return (
     <Guard>
       <Page title={entity === "categories" ? "Categorías" : "Proveedores"}>
+        <IdentityBanner title={entity === "categories" ? "Cada producto en su lugar." : "Las personas detrás de tu stock."} subtitle={entity === "categories" ? "Organizá tu catálogo para encontrar lo que necesitás más rápido." : "Mantené los datos de contacto y sus productos siempre a mano."} badge="ORGANIZÁ TU NEGOCIO" icon={entity === "categories" ? "grid-outline" : "car-outline"}/>
+        <Card><SectionHeading title="Explorá tu catálogo" icon="search-outline"/>
         <Input
           label="Buscar"
           value={q}
@@ -45,18 +48,19 @@ export function Catalog({ entity }: { entity: "categories" | "suppliers" }) {
             setPage(1);
           }}
         />
-        {user?.rol !== "empleado" && (
+        {role !== "empleado" && (
           <Button title="Crear registro" onPress={() => setEditing({})} />
         )}
+        </Card>
         <Status
           loading={r.loading}
           error={r.error}
           retry={r.load}
           empty={!r.data?.items.length}
         />
-        {r.data?.items.map((item: any) => (
-          <Card key={item.id}>
-            <Text style={[styles.title, { fontSize: 20 }]}>{item.nombre}</Text>
+        <View style={design.grid}>{r.data?.items.map((item: any) => (
+          <View key={item.id} style={design.column}><Card>
+            <SectionHeading title={item.nombre} icon={entity === "categories" ? "pricetags-outline" : "business-outline"}/>
             <Text style={styles.subtitle}>
               {item.descripcion ||
                 [item.email, item.telefono, item.direccion]
@@ -75,14 +79,14 @@ export function Catalog({ entity }: { entity: "categories" | "suppliers" }) {
                 }
               />
             )}
-            {user?.rol !== "empleado" && (
+            {role !== "empleado" && (
               <Button
                 title="Editar"
                 secondary
                 onPress={() => setEditing(item)}
               />
             )}
-            {user?.rol === "admin" && (
+            {role === "admin" && (
               <Confirm
                 title="Desactivar"
                 danger
@@ -97,8 +101,8 @@ export function Catalog({ entity }: { entity: "categories" | "suppliers" }) {
                 }}
               />
             )}
-          </Card>
-        ))}
+          </Card></View>
+        ))}</View>
         <Pager page={page} total={r.data?.total || 0} onChange={setPage} />
         <Sheet
           visible={!!editing}

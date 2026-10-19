@@ -9,7 +9,7 @@ StockFlow necesita conexión con su API y MySQL. Para registrarse y acceder por 
 1. Desde la bienvenida elegir Crear cuenta. Escribir nombre, correo y contraseña de al menos 10 caracteres con mayúscula, minúscula y número.
 2. En Verificá tu correo pulsar Enviar código. Revisar la casilla, ingresar los seis dígitos y verificar. Código: 10 minutos, cinco intentos. Esperar 60 segundos entre envíos.
 3. Iniciar sesión con email/contraseña. Si el segundo factor está activo, ingresar el código recibido. Si se cerró esa pantalla, volver a iniciar sesión y solicitar uno nuevo tras el enfriamiento.
-4. Para Google/GitHub/Facebook elegir el botón correspondiente en una build Android configurada. Autorizar en el navegador del sistema y volver a StockFlow. Cancelar no crea una sesión.
+4. Para Google/GitHub/Discord elegir el botón correspondiente desde web o una build Android configurada. Autorizar en el navegador y volver a StockFlow. Cancelar no crea una sesión.
 5. Si el email ya pertenece a una cuenta creada por otro método, utilizar ese método; la app no vincula cuentas automáticamente.
 6. Olvidé mi contraseña solicita un código y permite elegir una nueva contraseña. Se cierran las sesiones anteriores.
 
@@ -17,13 +17,19 @@ La sesión se conserva de forma segura en Android. La vista web de desarrollo re
 
 ## Navegación
 
-Las cuatro pestañas son Inicio, Productos, Movimientos y Perfil. Inicio muestra productos activos, unidades, stock bajo, faltantes y movimientos recientes. Categorías y Proveedores se abren desde Inicio. Los responsables ven valor de inventario y Reportes; solo administradores ven Usuarios.
+Después de verificar el correo, si no tenés negocios se abre Tus negocios. Elegí Crear negocio, completá nombre, rubro y descripción y confirmá. Serás administrador de ese negocio. Si tenés uno solo se selecciona automáticamente; si tenés varios, elegí uno. Cambiar negocio está disponible en Inicio y Perfil: descarta los datos visibles y carga el inventario del elegido.
+
+Las cuatro pestañas son Inicio, Productos, Movimientos y Perfil. Inicio muestra el nombre del negocio, productos activos, unidades, stock bajo, faltantes y movimientos recientes. Categorías y Proveedores se abren desde Inicio. Los responsables ven valor de inventario y Reportes; solo administradores ven Equipo. Mi negocio muestra su información y permite editarla si sos administrador.
 
 ## Productos
 
 Buscar nombre/SKU, seleccionar categoría y filtrar disponibles, stock bajo o sin stock. Las listas tienen páginas de veinte registros. Ver producto muestra precio, descripción, stock y mínimo.
 
-Admin/encargado pueden crear y editar. El formulario pide nombre, SKU único, precio decimal con punto, categoría, mínimo y proveedor opcional. Seleccionar referencias desde su listado; no hace falta conocer IDs SQL. El stock inicial es cero y se carga con una entrada. No se edita directamente.
+Admin/encargado pueden crear y editar. El formulario pide nombre, SKU único, precio decimal con punto, categoría, mínimo y proveedor opcional. Seleccionar referencias desde su listado; no hace falta conocer IDs SQL. Podés cargar Existencias iniciales al crear el producto (0 por defecto). El sistema registra automáticamente una entrada en el historial; no necesitás otra pantalla. Para cambiar stock después de crearlo se siguen usando movimientos.
+
+En Categoría o Proveedor, escribí el nombre en Buscar y presioná Enter (o el botón Usar o crear en celular). Si ya existe, se selecciona; si no, se crea dentro del negocio activo y queda seleccionada. El registro se guarda inmediatamente, aunque canceles el producto. Las colisiones de nombres se informan sin duplicar registros.
+
+Compra y venta: indicá el costo de compra por unidad (opcional) y el precio de venta por unidad, con punto decimal y en la misma moneda. Vacío significa costo desconocido; cero significa costo cero conocido. Al ingresar ambos importes se muestra la diferencia por unidad y el margen sobre venta, antes de impuestos y gastos. Vender por debajo del costo genera una advertencia, pero se permite. Estos son valores actuales del catálogo: no calculan ganancia histórica ni cambian los movimientos anteriores.
 
 Solo admin puede desactivar. Debe llevar primero el stock a cero mediante una operación justificada. La baja oculta el producto y conserva la auditoría; el SKU continúa reservado.
 
@@ -43,9 +49,15 @@ El historial muestra producto, usuario, fecha, tipo, cantidad, stock anterior/nu
 
 Admin/encargado ven valor actual, faltantes, stock bajo y estadísticas por categoría. El gráfico de entradas/salidas usa el período indicado en formato AAAA-MM-DD (UTC), por defecto últimos 30 días; máximo 366. Los ajustes no se cuentan como compras o ventas. Las métricas de stock muestran el estado actual, no una reconstrucción de existencias en una fecha histórica.
 
-## Usuarios
+## Equipo e invitaciones
 
-Solo admin puede buscar por nombre/email y filtrar por rol, abrir detalle, editar nombre, cambiar rol y activar/desactivar. Confirmar los cambios sensibles. Un cambio de rol/estado obliga al usuario afectado a iniciar sesión otra vez. El sistema impide que un administrador quite su propio acceso y conserva un administrador activo.
+En Inicio → Equipo, un administrador puede invitar por correo y elegir Empleado, Encargado o Administrador. Se envía un enlace válido por siete días. La sección Invitaciones enviadas permite consultar estado, reenviar (esperando al menos un minuto) o cancelar. Reenviar invalida el enlace anterior. Si el correo falló, la invitación queda pendiente para reintentar.
+
+El destinatario abre el enlace, inicia sesión o se registra con la dirección invitada y verifica ese email. También encontrará la invitación en Tus negocios → Invitaciones recibidas. Al aceptar se incorpora al equipo y comparte su inventario. Un enlace vencido, cancelado, utilizado o perteneciente a otro email no se acepta.
+
+Administrar integrante permite cambiar rol, quitar del negocio o restaurar acceso. Los cambios afectan únicamente ese negocio, sin editar el perfil personal ni cerrar sesiones en otros negocios. Siempre debe quedar un administrador activo. Podés ser administrador en un negocio y empleado en otro.
+
+Mi negocio → Desactivar negocio exige stock cero y confirmación. Conserva el historial, cancela invitaciones y bloquea acceso al negocio. No borra cuentas ni otros negocios.
 
 ## Perfil y salida
 

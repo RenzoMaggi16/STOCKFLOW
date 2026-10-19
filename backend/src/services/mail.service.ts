@@ -10,6 +10,13 @@ export function requireMail() {
     );
 }
 export async function sendCode(email: string, code: string, type: string) {
+  return sendMail(email, "StockFlow: código de seguridad", `Tu código para ${type} es ${code}. Vence en 10 minutos. No lo compartas. Si no lo solicitaste, ignorá este mensaje.`);
+}
+export async function sendInvitation(email: string, business: string, role: string, token: string) {
+  const link = `${env.WEB_APP_URL.replace(/\/$/, "")}/invite#token=${token}`;
+  return sendMail(email, "StockFlow: invitación a un negocio", `Te invitaron a ${business} con el rol ${role}.\n\nAceptá la invitación: ${link}\n\nVence en 7 días. Iniciá sesión o registrate con ${email} y verificá ese correo para aceptar. Si no esperabas esta invitación, podés ignorarla.`);
+}
+async function sendMail(email: string, subject: string, text: string) {
   requireMail();
   const transport = nodemailer.createTransport({
     host: env.SMTP_HOST,
@@ -26,8 +33,8 @@ export async function sendCode(email: string, code: string, type: string) {
     await transport.sendMail({
       from: env.SMTP_FROM,
       to: email,
-      subject: "StockFlow: código de seguridad",
-      text: `Tu código para ${type} es ${code}. Vence en 10 minutos. No lo compartas. Si no lo solicitaste, ignorá este mensaje.`,
+      subject,
+      text,
     });
   } catch {
     throw new HttpError(

@@ -1,0 +1,27 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { create, isCancel } from "axios";
+import { createBusinessScope } from "../src/services/businessScope";
+test("cambiar negocio descarta respuestas anteriores y no redirige reintentos", async () => {
+  const api = create(); const scope = createBusinessScope(api);
+  let complete: (value: any) => void = () => {};
+  let firstConfig: any;
+  let ready: () => void = () => {};
+  const started = new Promise<void>(r => { ready = r; });
+  api.defaults.adapter = config => new Promise(resolve => { firstConfig = config; complete = resolve; ready(); });
+  scope.set(10);
+  const pending = api.get("/products");
+  const rejected = assert.rejects(pending, e => isCancel(e));
+  await started;
+  assert.equal(firstConfig.headers.get("X-Business-Id"), "10");
+  scope.set(20);
+  complete({ data: { items: ["producto A"] }, status: 200, statusText: "OK", headers: {}, config: firstConfig });
+  await rejected;
+  let requests = 0;
+  api.defaults.adapter = async config => { requests++; return { data: { business: config.headers.get("X-Business-Id") }, status: 200, statusText: "OK", headers: {}, config }; };
+  await assert.rejects(api.request(firstConfig), e => isCancel(e));
+  assert.equal(requests, 0);
+  assert.equal((await api.get("/products")).data.business, "20");
+  scope.set(null);
+  assert.equal((await api.get("/products")).data.business, undefined);
+});

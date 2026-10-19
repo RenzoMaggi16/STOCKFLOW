@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { Text } from "react-native";
+import { Text, View } from "react-native";
+import { IdentityBanner, SectionHeading, design, roleLabel } from "../../components/WorkspaceDesign";
 import { router } from "expo-router";
 import { useAuth } from "../../contexts/AuthContext";
+import { useBusiness } from "../../contexts/BusinessContext";
 import { api } from "../../services/api";
 import { errorMessage } from "../../services/session";
 import {
@@ -16,14 +18,17 @@ import {
 import { EntityForm } from "../../components/EntityForm";
 export default function Profile() {
   const auth = useAuth();
+  const business = useBusiness();
   const [challenge, setChallenge] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   return (
     <Page title="Mi perfil" subtitle="Tu cuenta y seguridad">
+      <IdentityBanner title={auth.user?.nombre || "Tu cuenta"} subtitle={auth.user?.email || ""} badge="TU PERFIL PERSONAL" icon="person-outline"/>
+      <View style={styles.row}><Text style={styles.pill}>Correo verificado</Text><Text style={styles.pill}>{auth.user?.segundo_factor ? "Doble verificación activa" : "Doble verificación disponible"}</Text></View>
+      <View style={design.grid}><View style={design.column}>
       <Card>
-        <Text style={styles.label}>{auth.user?.email}</Text>
-        <Text style={styles.pill}>{auth.user?.rol} · Email verificado</Text>
+        <SectionHeading title="Datos personales" subtitle="El nombre con el que te verá tu equipo." icon="person-circle-outline"/>
         <EntityForm
           key={auth.user?.nombre}
           initial={{ nombre: auth.user?.nombre }}
@@ -36,8 +41,10 @@ export default function Profile() {
           }}
         />
       </Card>
+      <Card><SectionHeading title={business.active?.nombre || "Tu negocio"} subtitle={`${roleLabel(business.role)} · Tu espacio actual`} icon="storefront-outline"/><Button title="Información del negocio" secondary onPress={() => router.push("/business-settings")} /><Button title="Cambiar negocio" secondary onPress={() => router.push("/businesses")} /></Card>
+      </View><View style={design.column}>
       <Card>
-        <Text style={styles.label}>Segundo factor por email</Text>
+        <SectionHeading title="Una capa extra de seguridad" subtitle="Segundo factor por email" icon="shield-checkmark-outline"/>
         <Text style={styles.subtitle}>
           {auth.user?.segundo_factor
             ? "Activado: se solicita código al iniciar sesión."
@@ -63,6 +70,7 @@ export default function Profile() {
         />
       </Card>
       <Status error={error} />
+      <Card><SectionHeading title="Tu sesión" subtitle="Cerrá el acceso en este dispositivo cuando termines." icon="log-out-outline"/>
       <Confirm
         title="Cerrar sesión"
         message="Se cerrará tu sesión en este dispositivo."
@@ -78,6 +86,7 @@ export default function Profile() {
           }
         }}
       />
+      </Card></View></View>
       <Sheet
         title="Confirmar seguridad"
         visible={!!challenge}

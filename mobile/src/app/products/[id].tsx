@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { IdentityBanner, SectionHeading } from "../../components/WorkspaceDesign";
 import { Text } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useResource } from "../../hooks/useResource";
-import { useAuth } from "../../contexts/AuthContext";
+import { useBusiness } from "../../contexts/BusinessContext";
 import { api } from "../../services/api";
 import { errorMessage } from "../../services/session";
 import {
@@ -19,7 +20,7 @@ import { ProductForm } from "../../components/ProductForm";
 import { Guard } from "../../components/Guard";
 export default function Detail() {
   const { id } = useLocalSearchParams();
-  const { user } = useAuth();
+  const { role } = useBusiness();
   const r = useResource(`/products/${id}`);
   const [edit, setEdit] = useState(false);
   const p = r.data;
@@ -29,9 +30,13 @@ export default function Detail() {
         <Status loading={r.loading} error={r.error} retry={r.load} />
         {p && (
           <>
+            <IdentityBanner title={p.nombre} badge={`PRODUCTO · ${p.sku}`} subtitle={p.descripcion || "La información de tu producto, siempre a mano."} icon="cube-outline"/>
             <Card>
-              <Text style={styles.subtitle}>SKU {p.sku}</Text>
+              <SectionHeading title="Compra y venta" subtitle="Importes por unidad" icon="pricetag-outline"/>
+              <Text style={styles.subtitle}>Costo de compra: {p.costo_compra == null ? "Sin especificar" : money(p.costo_compra)}</Text>
+              <Text style={styles.subtitle}>Precio de venta</Text>
               <Text style={styles.title}>{money(p.precio)}</Text>
+              {p.costo_compra != null && <Text style={styles.subtitle}>Diferencia por unidad: {money(Number(p.precio)-Number(p.costo_compra))} · Antes de impuestos y gastos</Text>}
               <Text style={styles.pill}>
                 {p.stock} unidades · Mínimo {p.stock_minimo}
               </Text>
@@ -48,14 +53,14 @@ export default function Detail() {
                 })
               }
             />
-            {user?.rol !== "empleado" && (
+            {role !== "empleado" && (
               <Button
                 title="Editar producto"
                 secondary
                 onPress={() => setEdit(true)}
               />
             )}
-            {user?.rol === "admin" && (
+            {role === "admin" && (
               <Confirm
                 title="Desactivar producto"
                 danger

@@ -1,10 +1,10 @@
 # StockFlow
 
-Aplicación de inventario para comercios, desarrollada como proyecto final escolar. Permite organizar productos, proveedores y categorías; registrar entradas, salidas y ajustes; consultar reportes y administrar permisos.
+Aplicación multinegocio de inventario, desarrollada como proyecto final escolar. Cada persona puede crear negocios, invitar integrantes por correo y trabajar con un rol diferente en cada uno. Productos, proveedores, categorías, reportes y movimientos se aíslan por negocio.
 
 ## Estado real
 
-Backend y frontend implementados, con pruebas locales. OAuth Google/GitHub/Facebook está preparado **sin validación con credenciales reales**. Correo y segundo factor se verificaron con SMTP local de pruebas, no con casillas externas. Se exportó el bundle Android y se generó el proyecto nativo; **no hay APK compilado ni prueba en teléfono**. Ver [checklist y evidencia](docs/ESTADO_PROYECTO.md).
+Backend y frontend multinegocio implementados, con pruebas de aislamiento, invitaciones y cambio de contexto. El usuario confirmó registro y código por correo real. OAuth Google/GitHub/Discord llega a las pantallas de ingreso; el consentimiento y retorno real de cada cuenta siguen pendientes. Se exportó el bundle Android; **no hay APK compilado ni prueba en teléfono**. Ver [arquitectura multinegocio](docs/MULTINEGOCIO.md) y [checklist y evidencia](docs/ESTADO_PROYECTO.md).
 
 ## Tecnologías y arquitectura
 
@@ -33,7 +33,9 @@ stockflow/
 | Historial propio y perfil | Sí | Sí | Sí |
 | Administrar usuarios | Sí | No | No |
 
-Incluye registro, recuperación, verificación de email y segundo factor opcional por correo. Las cuentas nuevas siempre son empleados. El stock no se cambia editando productos; cada movimiento conserva autor, fecha, motivo y cantidades anterior/nueva.
+Incluye registro, recuperación, verificación de email y segundo factor opcional por correo. Registrarse crea una identidad sin rol global. Crear un negocio asigna el rol administrador de ese negocio; las invitaciones asignan el rol elegido por su administrador. El stock no se cambia editando productos; cada movimiento conserva negocio, autor, fecha, motivo y cantidades anterior/nueva. La matriz de permisos anterior se aplica por negocio.
+
+Al actualizar una instalación previa, la migración 005 conserva su inventario en un negocio histórico desactivado y sin integrantes. No se adjudica a un usuario automáticamente. Después de iniciar sesión, creá tu negocio o aceptá una invitación. Ver la estrategia de conservación en [Multinegocio](docs/MULTINEGOCIO.md).
 
 ## Inicio rápido
 

@@ -16,10 +16,11 @@ export async function getActive(
   conn: PoolConnection,
   entity: Entity,
   id: number,
+  businessId: number,
 ) {
   const [rows] = await conn.execute<RowDataPacket[]>(
-    `SELECT * FROM ${tables[entity]} WHERE id=? AND activo=1 FOR UPDATE`,
-    [id],
+    `SELECT * FROM ${tables[entity]} WHERE id=? AND negocio_id=? AND activo=1 FOR UPDATE`,
+    [id, businessId],
   );
   if (!rows[0])
     throw new HttpError(404, "Registro inexistente o inactivo", "NOT_FOUND");
@@ -42,17 +43,18 @@ export async function update(
   entity: Entity,
   id: number,
   data: Record<string, string | number | null>,
+  businessId: number,
 ) {
   const keys = Object.keys(data);
   await conn.execute(
-    `UPDATE ${tables[entity]} SET ${keys.map((k) => `${k}=?`).join(",")} WHERE id=?`,
-    [...Object.values(data), id],
+    `UPDATE ${tables[entity]} SET ${keys.map((k) => `${k}=?`).join(",")} WHERE id=? AND negocio_id=?`,
+    [...Object.values(data), id, businessId],
   );
 }
-export async function detail(entity: Entity, id: number) {
+export async function detail(entity: Entity, id: number, businessId: number) {
   const [rows] = await pool.execute<RowDataPacket[]>(
-    `SELECT * FROM ${tables[entity]} WHERE id=? AND activo=1`,
-    [id],
+    `SELECT * FROM ${tables[entity]} WHERE id=? AND negocio_id=? AND activo=1`,
+    [id, businessId],
   );
   if (!rows[0])
     throw new HttpError(404, "Registro inexistente o inactivo", "NOT_FOUND");

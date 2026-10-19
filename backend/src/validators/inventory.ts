@@ -21,6 +21,7 @@ export const productSchema = z
     descripcion: optionalText(1000),
     sku: text(64),
     precio: z.string().regex(/^\d{1,10}(\.\d{1,2})?$/),
+    costo_compra: z.string().regex(/^\d{1,10}(\.\d{1,2})?$/).nullable().optional(),
     stock_minimo: z.number().int().min(0).max(2147483647).optional(),
     categoria_id: idSchema,
     proveedor_id: idSchema.nullable().optional(),

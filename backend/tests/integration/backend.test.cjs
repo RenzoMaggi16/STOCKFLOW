@@ -40,11 +40,13 @@ test("API completa contra MySQL (base temporal aislada)", async (t) => {
     server = require("../../dist/app").default.listen(0, "127.0.0.1");
     await new Promise((resolve) => server.once("listening", resolve));
     const base = `http://127.0.0.1:${server.address().port}/api`;
+    let businessId;
     async function req(method, url, body, token) {
       const r = await fetch(base + url, {
         method,
         headers: {
           "content-type": "application/json",
+          ...(businessId ? { "X-Business-Id": String(businessId) } : {}),
           ...(token ? { authorization: `Bearer ${token}` } : {}),
         },
         ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -93,8 +95,11 @@ test("API completa contra MySQL (base temporal aislada)", async (t) => {
           null,
           201,
         );
-        assert.equal(owner.user.rol, "empleado");
+        assert.equal(owner.user.rol, undefined);
         await admin.query("UPDATE usuarios SET email_verificado=1");
+        const business = await ok("POST", "/businesses", { nombre: "Negocio de pruebas" }, owner.accessToken, 201);
+        businessId = business.id;
+        await admin.execute("INSERT INTO negocio_usuarios(negocio_id,usuario_id,rol) VALUES(?,?,'empleado'),(?,?,'encargado')", [businessId, employee.user.id, businessId, manager.user.id]);
         assert.equal(
           (
             await req("POST", "/auth/register", {
@@ -146,7 +151,7 @@ test("API completa contra MySQL (base temporal aislada)", async (t) => {
         ]);
         assert.equal(
           (await ok("GET", "/auth/me", undefined, owner.accessToken)).rol,
-          "admin",
+          undefined,
         );
         assert.equal(
           (await req("GET", "/demo/admin", undefined, employee.accessToken))
@@ -273,6 +278,14 @@ test("API completa contra MySQL (base temporal aislada)", async (t) => {
         product = await ok("POST", "/products", body, manager.accessToken, 201);
         assert.equal(product.stock, 0);
         assert.equal(product.precio, "1234.50");
+        assert.equal(product.costo_compra, null);
+        for (const invalid of ["-1", "1.234", "10000000000", 5]) {
+          assert.equal((await req("PATCH", `/products/${product.id}`, {costo_compra:invalid}, manager.accessToken)).status,422);
+        }
+        assert.equal((await ok("PATCH", `/products/${product.id}`, {costo_compra:"900.25"}, manager.accessToken)).costo_compra,"900.25");
+        assert.equal((await ok("PATCH", `/products/${product.id}`, {costo_compra:"0"}, manager.accessToken)).costo_compra,"0.00");
+        assert.equal((await ok("PATCH", `/products/${product.id}`, {costo_compra:null}, manager.accessToken)).costo_compra,null);
+        assert.equal((await ok("PATCH", `/products/${product.id}`, {costo_compra:"1500.00"}, manager.accessToken)).precio,"1234.50");
         assert.equal(
           (await req("POST", "/products", body, owner.accessToken)).status,
           409,
@@ -473,24 +486,30 @@ test("API completa contra MySQL (base temporal aislada)", async (t) => {
         owner.accessToken,
         201,
       );
-      const service = require("../../dist/services/inventory.service");
-      await assert.rejects(
-        service.recordMovement(
-          {
-            producto_id: p.id,
-            tipo: "entrada",
-            cantidad: 5,
-            motivo: "FK inválida",
-          },
-          2147483647,
-          "admin",
-        ),
-      );
+      // Fuerza una falla real después del UPDATE del stock; la transacción debe revertirlo.
+      await admin.query("CREATE TRIGGER test_audit_failure BEFORE INSERT ON movimientos_stock FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='audit test failure'");
+      assert.equal((await req("POST", "/movements", { producto_id: p.id, tipo: "entrada", cantidad: 5, motivo: "Rollback" }, owner.accessToken)).status, 500);
+      await admin.query("DROP TRIGGER test_audit_failure");
       assert.equal(
         (await ok("GET", `/products/${p.id}`, undefined, owner.accessToken))
           .stock,
         0,
       );
+    });
+    await t.test("existencias iniciales atómicas y solo al crear", async () => {
+      const cat=await ok("POST","/categories",{nombre:"Iniciales"},owner.accessToken,201);
+      const body={nombre:"Inicial",sku:"INITIAL",precio:"2.00",categoria_id:cat.id,stock_inicial:7};
+      for(const stock_inicial of [-1,1.5,2147483648,"3"]) assert.equal((await req("POST","/products",{...body,stock_inicial},owner.accessToken)).status,422);
+      assert.equal((await req("POST","/products",body,employee.accessToken)).status,403);
+      const p=await ok("POST","/products",body,owner.accessToken,201);
+      assert.equal(p.stock,7);
+      const [[movement]]=await admin.execute("SELECT * FROM movimientos_stock WHERE producto_id=?",[p.id]);
+      assert.equal(movement.stock_anterior,0);assert.equal(movement.stock_nuevo,7);assert.equal(movement.cantidad,7);assert.equal(movement.usuario_id,owner.user.id);assert.equal(movement.negocio_id,businessId);
+      assert.equal((await req("PATCH",`/products/${p.id}`,{stock_inicial:10},owner.accessToken)).status,422);
+      await admin.query("CREATE TRIGGER initial_failure BEFORE INSERT ON movimientos_stock FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='initial audit test failure'");
+      try { assert.equal((await req("POST","/products",{...body,sku:"INITIAL-FAIL"},owner.accessToken)).status,500); }
+      finally {await admin.query("DROP TRIGGER initial_failure");}
+      const [[count]]=await admin.query("SELECT COUNT(*) AS total FROM productos WHERE sku='INITIAL-FAIL'");assert.equal(count.total,0);
     });
     await t.test("usuario desactivado pierde acceso y renovación", async () => {
       await admin.execute("UPDATE usuarios SET activo=0 WHERE id=?", [

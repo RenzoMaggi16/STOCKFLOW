@@ -14,7 +14,7 @@ macOS permite `brew install node mysql@8.4`. Android Studio y su SDK son necesar
 4. Generar dos secretos independientes: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Repetir para access y refresh. Nunca subir `.env` a Git.
 5. Aplicar `npm run migrate` con un usuario administrador de esquema configurado temporalmente en el entorno. MySQL hace commits implícitos de DDL: si una migración falla a mitad, revisar y reparar antes de reintentar. No borrar la base.
 6. Editar la contraseña de ejemplo de `database/create_user.sql` y ejecutarlo como administrador. La API usa `stockflow_app`, solo SELECT/INSERT/UPDATE/DELETE.
-7. `npm run seed`: agrega una categoría, un proveedor y dos productos con stock cero. Es repetible y no sobrescribe datos de negocio. Las entradas se registran por API.
+7. El seed es opcional y se ejecuta después de crear un negocio desde la app: `SEED_BUSINESS_ID=ID npm run seed`. Reemplazar ID por un negocio activo propio. Agrega una categoría, un proveedor y dos productos con stock cero; es repetible dentro de ese negocio. En PowerShell establecer primero `$env:SEED_BUSINESS_ID='ID'`.
 8. `npm run typecheck`, `npm test`, `npm run build`, `npm start`. Desarrollo: `npm run dev`.
 9. Comprobar `http://localhost:3000/api/health`.
 
@@ -38,16 +38,9 @@ Sin SMTP los envíos responden 503; no se imprimen códigos ni se habilita una p
 
 Para desarrollo puede usarse un servidor SMTP local de captura (por ejemplo Mailpit, configurado por el usuario), apuntando SMTP_HOST/PORT a ese servicio. Su bandeja es únicamente de desarrollo. Las pruebas automatizadas ya incluyen un SMTP local efímero y no entregan mensajes al exterior.
 
-## Primera cuenta administradora
+## Primer negocio y administrador
 
-Registrar y verificar una cuenta propia desde la app. Un operador autorizado cambia su rol en MySQL:
-
-```sql
-UPDATE usuarios SET rol_id=(SELECT id FROM roles WHERE nombre='admin')
-WHERE email='tu-email@example.com';
-```
-
-Cerrar sesión y entrar para actualizar la interfaz. No hay contraseña maestra ni rol privilegiado en el registro público.
+Registrar y verificar una cuenta propia, entrar y pulsar Crear negocio. La API crea el negocio y su membresía administradora en una transacción. El rol pertenece al negocio: modificar `usuarios.rol_id` no concede permisos. Invitar integrantes desde Equipo. La migración 005 conserva inventario anterior en un negocio histórico inactivo sin propietario; consultar [Multinegocio](MULTINEGOCIO.md) antes de asignarlo.
 
 ## Frontend
 
@@ -62,7 +55,7 @@ Desde `stockflow/mobile`, ejecutar `npm ci`; copiar `.env.example` a `.env` y co
 
 SecureStore guarda tokens en Android. Web mantiene los tokens en memoria y solicita login tras recargar; es intencional para no colocar refresh tokens en localStorage.
 
-## Google, GitHub y Facebook
+## Google, GitHub y Discord
 
 El flujo implementado usa navegador del sistema → callback HTTPS del backend → deep link `stockflow://oauth`. No requiere secretos en el móvil. Configurar `PUBLIC_API_URL=https://DOMINIO_DEL_BACKEND` **sin `/api` final**.
 
@@ -70,11 +63,11 @@ El flujo implementado usa navegador del sistema → callback HTTPS del backend �
 |---|---|---|
 | Google | Google Cloud Console → APIs y servicios → credenciales → cliente OAuth de aplicación web; pantalla de consentimiento, scopes openid/email/profile, usuarios de prueba | `https://DOMINIO_DEL_BACKEND/api/auth/social/google/callback` |
 | GitHub | Settings → Developer settings → OAuth Apps → New OAuth App; permisos read:user y user:email | `https://DOMINIO_DEL_BACKEND/api/auth/social/github/callback` |
-| Facebook | Meta for Developers → aplicación con Facebook Login; configurar OAuth web, dominio, email/public_profile y cuentas de prueba; revisar requisitos de publicación | `https://DOMINIO_DEL_BACKEND/api/auth/social/facebook/callback` |
+| Discord | Developer Portal → aplicación → OAuth2; scopes identify y email; no necesita bot | `https://DOMINIO_DEL_BACKEND/api/auth/social/discord/callback` |
 
-Copiar IDs y secretos reales a GOOGLE_CLIENT_ID/SECRET, GITHUB_CLIENT_ID/SECRET y FACEBOOK_CLIENT_ID/SECRET del backend. FACEBOOK_GRAPH_VERSION está parametrizada (v23.0 inicial); comprobar en Meta una versión soportada para la app. No se certificó ese proveedor en vivo. Google utiliza cliente web porque el canje está en servidor; esta implementación no usa SDK nativo ni SHA fingerprint Android. Si se migra a SDK nativo, registrar paquete/firma en la consola y repetir la validación.
+Copiar IDs y secretos reales a GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET, GITHUB_CLIENT_ID/GITHUB_CLIENT_SECRET y DISCORD_CLIENT_ID/DISCORD_CLIENT_SECRET del backend. Google utiliza cliente web porque el canje está en servidor; esta implementación no usa SDK nativo ni SHA fingerprint Android.
 
-El backend no enlaza cuentas por email. Una cuenta ya existente debe usar su método original; no se implementó una pantalla de vinculación explícita. Google/GitHub nuevos pueden marcar correo verificado si el proveedor lo confirma; Facebook requiere código local. Si no viene email, el flujo falla sin crear una identidad incompleta.
+El backend no enlaza cuentas por email. Una cuenta ya existente debe usar su método original; no se implementó una pantalla de vinculación explícita. El correo se considera verificado solo cuando el proveedor lo confirma; en otro caso se solicita verificación local. Si no viene email, el flujo falla sin crear una identidad incompleta.
 
 Fuentes oficiales consultadas: [Expo OAuth](https://docs.expo.dev/guides/authentication/), [Google Web Server OAuth](https://developers.google.com/identity/protocols/oauth2/web-server), [Google UserInfo](https://developers.google.com/identity/openid-connect/reference), [GitHub OAuth](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps). La documentación de Meta devolvió 429 durante esta revisión; revisar su [flujo manual](https://developers.facebook.com/docs/facebook-login/guides/advanced/manual-flow/) al configurar credenciales.
 
@@ -116,3 +109,15 @@ El test crea una cuenta artificial verificada solo en su base temporal, inicia A
 No exponer MySQL a Internet. TLS debe terminar en el backend o proxy autorizado; configurar proxy de confianza solo para esa infraestructura. CORS debe contener el origen web exacto y no reemplaza autorización. Respaldar MySQL, limitar permisos, gestionar secretos fuera de Git y revisar dependencias antes de producción.
 
 Hay avisos npm pendientes en dependencias transitivas de compilación de Expo, detallados en ESTADO_PROYECTO.md. No aplicar `npm audit fix --force` indiscriminadamente: proponía degradar Expo a una versión incompatible. El proyecto no se declara listo para producción ni presentación final hasta cerrar los bloqueos de la checklist.
+
+## Actualización: Discord y Aiven
+
+Discord sustituye a Facebook en la configuración actual. Crear una aplicación OAuth2 en Discord, registrar `/api/auth/social/discord/callback` bajo la URL pública del backend y configurar `DISCORD_CLIENT_ID` y `DISCORD_CLIENT_SECRET`. Los permisos solicitados por el código son `identify email`; no requiere bot. Aplicar migración `003_discord.sql` con el usuario administrador de esquema.
+
+MySQL remoto admite `DB_SSL=true` y `DB_SSL_CA_FILE=/ruta/al/ca.pem`. La validación de certificados permanece obligatoria. Las credenciales Aiven locales se guardan en `.env.aiven` ignorado por Git; no se carga automáticamente, para preservar la base de desarrollo. Configurar el entorno remoto de forma explícita antes de migrar. No usar las credenciales remotas en pruebas automatizadas.
+
+Si Brevo devuelve `525 Unauthorized IP address`, revisar el correo de seguridad y la configuración de IP autorizadas en Brevo. Autorizar la actividad legítima del equipo/servidor y repetir la verificación SMTP. El usuario SMTP debe ser el login del panel, y la contraseña una clave SMTP.
+
+## Retorno social en navegador
+
+Configurar `WEB_APP_URL=http://localhost:8081` localmente, o el origen HTTPS exacto del frontend publicado. Aplicar migración 004. Los callbacks registrados en Google/GitHub/Discord siguen apuntando al backend `/api/auth/social/PROVEEDOR/callback`; el backend redirige después a `/oauth` del frontend o al esquema nativo según la plataforma que inició la solicitud. No intercambiar localhost y 127.0.0.1 en el frontend durante el flujo: el verificador temporal pertenece al origen y pestaña que inició el acceso.

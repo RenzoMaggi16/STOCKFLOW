@@ -22,7 +22,7 @@ export const authenticate: RequestHandler = async (req, _res, next) => {
     if (!rows[0]) throw new HttpError(401, "Usuario inactivo", "INVALID_USER");
     if (rows[0].token_version !== accessVersion(match[1]))
       throw new HttpError(401, "Sesión revocada", "INVALID_TOKEN");
-    req.auth = { userId, role: rows[0].role };
+    req.auth = { userId, role: "", businessId: 0 };
     next();
   } catch (e) {
     next(e);
@@ -37,6 +37,21 @@ export const authorize =
       return next(new HttpError(403, "No tenés permisos", "FORBIDDEN"));
     next();
   };
+
+export const businessContext: RequestHandler = async (req, _res, next) => {
+  const value = req.params.id || req.header("X-Business-Id");
+  if (!value || !/^\d+$/.test(String(value)) || !Number.isSafeInteger(Number(value)) || Number(value) < 1)
+    throw new HttpError(400, "Seleccioná un negocio", "BUSINESS_REQUIRED");
+  const businessId = Number(value);
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    "SELECT m.rol FROM negocio_usuarios m JOIN negocios n ON n.id=m.negocio_id WHERE m.negocio_id=? AND m.usuario_id=? AND m.estado='activo' AND n.activo=1",
+    [businessId, req.auth!.userId],
+  );
+  if (!rows[0]) throw new HttpError(403, "No tenés acceso a este negocio", "BUSINESS_FORBIDDEN");
+  req.auth!.businessId = businessId;
+  req.auth!.role = rows[0].rol;
+  next();
+};
 
 export const verified: RequestHandler = async (req, _res, next) => {
   const [rows] = await pool.execute<RowDataPacket[]>(

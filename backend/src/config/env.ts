@@ -17,17 +17,16 @@ const schema = z.object({
   SMTP_USER: z.string().default(""),
   SMTP_PASSWORD: z.string().default(""),
   SMTP_FROM: z.string().default("StockFlow <noreply@example.com>"),
+  WEB_APP_URL: z.string().url().default("http://localhost:8081"),
   PUBLIC_API_URL: z.string().url().default("http://localhost:3000"),
   GOOGLE_CLIENT_ID: z.string().default(""),
   GOOGLE_CLIENT_SECRET: z.string().default(""),
   GITHUB_CLIENT_ID: z.string().default(""),
   GITHUB_CLIENT_SECRET: z.string().default(""),
-  FACEBOOK_CLIENT_ID: z.string().default(""),
-  FACEBOOK_CLIENT_SECRET: z.string().default(""),
-  FACEBOOK_GRAPH_VERSION: z
-    .string()
-    .regex(/^v[0-9]+\.[0-9]+$/)
-    .default("v23.0"),
+  DISCORD_CLIENT_ID: z.string().default(""),
+  DISCORD_CLIENT_SECRET: z.string().default(""),
+  DB_SSL: z.enum(["true", "false"]).default("false"),
+  DB_SSL_CA_FILE: z.string().default(""),
   CORS_ORIGINS: z.string().default("http://localhost:8081"),
 });
 const parsed = schema.safeParse(process.env);

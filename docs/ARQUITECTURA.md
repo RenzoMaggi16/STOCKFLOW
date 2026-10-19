@@ -10,15 +10,15 @@ El backend Express conserva capas de rutas, middleware, validadores, servicios y
 
 ## Flujo de acceso
 
-1. Registro valida email y contraseña, aplica bcrypt y crea rol empleado dentro de una transacción junto con la sesión.
+1. Registro valida email y contraseña, aplica bcrypt y crea la identidad y su sesión. No concede permisos de negocio hasta crear uno o aceptar una invitación.
 2. Access JWT HS256 dura 15 minutos; refresh dura 7 días. Ambos verifican emisor y audiencia. El refresh se almacena únicamente como SHA-256.
 3. El usuario sin correo verificado puede gestionar su autenticación y perfil, pero no acceder al inventario.
 4. Al renovar, MySQL bloquea el usuario y la sesión. El refresh anterior se revoca y nace otro; reutilizar el anterior revoca todos los refresh activos de esa cuenta.
 5. Axios comparte una promesa de renovación. Un 401 tardío del token anterior reutiliza el token ya renovado. Solo reintenta cada solicitud una vez.
 6. Un error de conexión conserva credenciales para reintentar; un rechazo definitivo de renovación borra la sesión. Logout borra primero el almacenamiento local y después intenta revocación remota.
-7. Un cambio de rol/estado, contraseña o configuración 2FA incrementa `token_version`: los access anteriores fallan inmediatamente. Logout ordinario no incrementa esa versión, por lo que un access ya emitido puede durar hasta 15 minutos.
+7. Un cambio de contraseña o configuración 2FA incrementa `token_version`: los access anteriores fallan inmediatamente. Logout ordinario no incrementa esa versión, por lo que un access ya emitido puede durar hasta 15 minutos.
 
-El rol y el estado activo se consultan en MySQL en cada solicitud. Ocultar botones es una ayuda visual; la seguridad está en el backend.
+El rol de la membresía y el estado activo se consultan en MySQL en cada solicitud. Ocultar botones es una ayuda visual; la seguridad está en el backend.
 
 ## Códigos de correo
 
@@ -30,7 +30,7 @@ Nodemailer envía a SMTP; producción exige TLS. El código existe transitoriame
 
 ## OAuth
 
-Se utiliza navegador del sistema con callback HTTPS al backend. El backend crea `state` aleatorio, lo guarda como hash, canjea el código con el secreto y obtiene la identidad desde el proveedor. Google usa UserInfo de OIDC y `sub`; GitHub usa ID de usuario y email verificado; Facebook usa ID y requiere verificación local de correo al no asumir que email sea verificado.
+Se utiliza navegador del sistema con callback HTTPS al backend. El backend crea `state` aleatorio, lo guarda como hash, canjea el código con el secreto y obtiene la identidad desde el proveedor. Google usa UserInfo de OIDC y `sub`; GitHub usa ID de usuario y email verificado; Discord usa ID y comprueba la marca verified de su email.
 
 El callback redirige a `stockflow://oauth` con un ticket efímero, nunca JWT ni token del proveedor. La app canjea el ticket con un verificador cuya huella SHA-256 envió al iniciar el flujo. Esta prueba de posesión protege el ticket ante interceptación del deep link. `state` protege la solicitud al proveedor. Ticket: 60 segundos y un solo uso; inicio OAuth: 5 minutos.
 
@@ -40,13 +40,18 @@ La relación se identifica por `(proveedor, proveedor_usuario_id)`. Una coincide
 
 `SELECT ... FOR UPDATE` bloquea el producto durante el movimiento. Se calcula el stock nuevo, se comprueban límites y se guardan producto e historial en la misma transacción. Una falla de auditoría revierte ambas operaciones. No hay DELETE de movimientos.
 
-La baja es lógica. Se exige stock cero y no se desactivan referencias que todavía tienen productos activos. Un candado `admin_lock` serializa cambios de permisos y vuelve a comprobar al administrador dentro de la transacción; se bloquea la autoexclusión y se conserva al menos un administrador activo.
+La baja es lógica. Se exige stock cero y no se desactivan referencias que todavía tienen productos activos. Cada escritura bloquea el negocio y comprueba otra vez su membresía antes de modificar recursos. Se conserva al menos un administrador activo; la autoexclusión se permite si queda otro administrador.
 
 ## Modelo entidad-relación
 
+El esquema resume identidad e inventario; el modelo completo se detalla en [Multinegocio](MULTINEGOCIO.md). `usuarios.rol_id` es histórico y no autoriza operaciones. SKU es único junto con negocio_id. Todas las tablas de inventario contienen negocio_id obligatorio.
+
 ```mermaid
 erDiagram
- roles ||--o{ usuarios : autoriza
+ negocios ||--o{ negocio_usuarios : contiene
+ usuarios ||--o{ negocio_usuarios : pertenece
+ negocios ||--o{ productos : contiene
+ negocios ||--o{ invitaciones : invita
  usuarios ||--o{ sesiones : inicia
  usuarios ||--o{ verificaciones : recibe
  usuarios ||--o{ auth_proveedores : identifica
@@ -61,10 +66,10 @@ erDiagram
  verificaciones { string id PK int usuario_id FK string codigo_hash string tipo int intentos datetime expira_en datetime utilizado_en }
  auth_proveedores { int id PK int usuario_id FK string proveedor string proveedor_usuario_id }
  oauth_flujos { string state_hash PK string challenge string ticket_hash UK int usuario_id FK datetime expira_en boolean usado }
- productos { int id PK string sku UK decimal precio int stock int stock_minimo int categoria_id FK int proveedor_id FK boolean activo }
+ productos { int id PK string sku decimal precio int stock int stock_minimo int categoria_id FK int proveedor_id FK boolean activo }
  movimientos_stock { bigint id PK int producto_id FK int usuario_id FK string tipo int cantidad int stock_anterior int stock_nuevo string motivo }
 ```
 
 ## Límites operativos
 
-Aplicación de un comercio, sin multiempresa. Rate limit en memoria: para varias réplicas requiere almacén compartido. Debe configurarse proxy/HTTPS y respaldos antes de producción. Las tablas de códigos/sesiones y flujos OAuth necesitan una política de limpieza de registros expirados, conservando el tiempo de detección de reutilización acordado. No se probó carga productiva.
+Aplicación multinegocio con aislamiento SQL y permisos por membresía. Rate limit en memoria: para varias réplicas requiere almacén compartido. Debe configurarse proxy/HTTPS y respaldos antes de producción. Las tablas de códigos/sesiones y flujos OAuth necesitan una política de limpieza de registros expirados, conservando el tiempo de detección de reutilización acordado. No se probó carga productiva.

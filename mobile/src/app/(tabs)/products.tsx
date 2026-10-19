@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Text } from "react-native";
+import { Text, View } from "react-native";
+import { IdentityBanner, SectionHeading, design } from "../../components/WorkspaceDesign";
 import { router, useLocalSearchParams } from "expo-router";
-import { useAuth } from "../../contexts/AuthContext";
+import { useBusiness } from "../../contexts/BusinessContext";
 import { useResource } from "../../hooks/useResource";
 import {
   Page,
@@ -15,18 +16,21 @@ import {
   money,
 } from "../../components/ui";
 export default function Products() {
-  const { user } = useAuth();
-  const params = useLocalSearchParams<{ proveedor_id?: string }>();
+  const { role } = useBusiness();
+  const params = useLocalSearchParams<{ proveedor_id?: string; stock?: string }>();
   const [q, setQ] = useState(""),
-    [stock, setStock] = useState(""),
+    [localStock, setStock] = useState(""),
     [category, setCategory] = useState(""),
     [page, setPage] = useState(1);
+  const stock = params.stock ?? localStock;
   const cats = useResource("/categories?limit=100");
   const r = useResource(
     `/products?page=${page}&q=${encodeURIComponent(q)}${stock ? `&stock=${stock}` : ""}${category ? `&categoria_id=${category}` : ""}${params.proveedor_id ? `&proveedor_id=${params.proveedor_id}` : ""}`,
   );
   return (
     <Page title="Productos" subtitle="Existencias claras, decisiones simples">
+      <IdentityBanner title="Tu catálogo, bajo control." subtitle="Consultá precios, encontrá productos y anticipá la próxima reposición." badge="INVENTARIO" icon="cube-outline"/>
+      <Card><SectionHeading title="Encontrá tu producto" icon="search-outline"/>
       <Input
         label="Buscar por nombre o SKU"
         value={q}
@@ -39,6 +43,7 @@ export default function Products() {
         value={stock}
         onChange={(v) => {
           setStock(v);
+          router.setParams({ stock: v });
           setPage(1);
         }}
         options={[
@@ -69,23 +74,24 @@ export default function Products() {
           onPress={() => router.setParams({ proveedor_id: "" })}
         />
       )}
-      {user?.rol !== "empleado" && (
+      {role !== "empleado" && (
         <Button
           title="Nuevo producto"
           onPress={() => router.push("/products/create")}
         />
       )}
+      </Card>
       <Status
         loading={r.loading}
         error={r.error}
         retry={r.load}
         empty={!r.data?.items.length}
       />
-      {r.data?.items.map((p: any) => (
-        <Card key={p.id}>
-          <Text style={[styles.title, { fontSize: 20 }]}>{p.nombre}</Text>
+      <View style={design.grid}>{r.data?.items.map((p: any) => (
+        <View key={p.id} style={design.column}><Card>
+          <SectionHeading title={p.nombre} subtitle={`SKU ${p.sku}`} icon="cube-outline"/>
           <Text style={styles.subtitle}>
-            {p.sku} · {money(p.precio)}
+            Venta por unidad · {money(p.precio)}
           </Text>
           <Text style={styles.pill}>
             {p.stock} unidades{p.stock <= p.stock_minimo ? " · Stock bajo" : ""}
@@ -95,8 +101,8 @@ export default function Products() {
             secondary
             onPress={() => router.push(`/products/${p.id}`)}
           />
-        </Card>
-      ))}
+        </Card></View>
+      ))}</View>
       <Pager page={page} total={r.data?.total || 0} onChange={setPage} />
     </Page>
   );

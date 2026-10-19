@@ -27,7 +27,6 @@ export type PublicUser = {
   id: number;
   nombre: string;
   email: string;
-  rol: string;
   email_verificado: boolean;
   segundo_factor: boolean;
 };
@@ -35,7 +34,6 @@ const publicUser = (u: UserRow): PublicUser => ({
   id: u.id,
   nombre: u.nombre,
   email: u.email,
-  rol: u.role,
   email_verificado: !!u.email_verificado,
   segundo_factor: !!u.segundo_factor,
 });

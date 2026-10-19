@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { authenticate, authorize } from "../middleware/auth";
+import { authorize } from "../middleware/auth";
 import {
   categorySchema,
   supplierSchema,
@@ -12,26 +12,27 @@ import {
 import * as service from "../services/inventory.service";
 import { detail, type Entity } from "../repositories/inventory.repository";
 const router = Router();
-router.use(authenticate, authorize("admin", "encargado", "empleado"));
+router.use(authorize("admin", "encargado", "empleado"));
 function crud(entity: Entity, schema: z.ZodObject<z.ZodRawShape>) {
   router.get(`/${entity}`, async (req, res) =>
     res.json({
       success: true,
-      data: await service.list(entity, listSchema.parse(req.query)),
+      data: await service.list(req.auth!.businessId, entity, listSchema.parse(req.query)),
     }),
   );
   router.get(`/${entity}/:id`, async (req, res) =>
     res.json({
       success: true,
-      data: await detail(entity, idSchema.parse(req.params.id)),
+      data: await detail(entity, idSchema.parse(req.params.id), req.auth!.businessId),
     }),
   );
   router.post(`/${entity}`, authorize("admin", "encargado"), async (req, res) =>
     res.status(201).json({
       success: true,
       data: await service.save(
+        req.auth!,
         entity,
-        schema.parse(req.body) as Record<string, string | number | null>,
+        (entity === "products" ? schema.extend({stock_inicial:z.number().int().min(0).max(2147483647).optional()}) : schema).parse(req.body) as Record<string, string | number | null>,
       ),
     }),
   );
@@ -52,6 +53,7 @@ function crud(entity: Entity, schema: z.ZodObject<z.ZodRawShape>) {
         res.json({
           success: true,
           data: await service.save(
+            req.auth!,
             entity,
             validator.parse(req.body) as Record<string, string | number | null>,
             idSchema.parse(req.params.id),
@@ -60,7 +62,7 @@ function crud(entity: Entity, schema: z.ZodObject<z.ZodRawShape>) {
       },
     );
   router.delete(`/${entity}/:id`, authorize("admin"), async (req, res) => {
-    await service.deactivate(entity, idSchema.parse(req.params.id));
+    await service.deactivate(req.auth!, entity, idSchema.parse(req.params.id));
     res.json({ success: true, message: "Registro desactivado" });
   });
 }
@@ -72,8 +74,7 @@ router.post("/movements", async (req, res) =>
     success: true,
     data: await service.recordMovement(
       movementSchema.parse(req.body),
-      req.auth!.userId,
-      req.auth!.role,
+      req.auth!,
     ),
   }),
 );
@@ -84,6 +85,7 @@ router.get("/movements", async (req, res) => {
   res.json({
     success: true,
     data: await service.movements(
+      req.auth!.businessId,
       req.auth!.userId,
       req.auth!.role,
       page,
