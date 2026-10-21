@@ -240,14 +240,14 @@ test("Cuentas, reportes y correo SMTP local real", async (t) => {
         );
         await request(
           "POST",
-          "/movements",
+          "/stock/receive",
           {
             producto_id: p.data.id,
             tipo: "entrada",
             cantidad: 5,
             motivo: "Prueba",
           },
-          admin.accessToken,
+          employee.accessToken,
         );
         const r = await request(
           "GET",

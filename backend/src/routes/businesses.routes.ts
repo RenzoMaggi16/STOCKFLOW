@@ -5,7 +5,7 @@ import { businessContext, authorize } from "../middleware/auth";
 import { idSchema } from "../validators/inventory";
 import * as service from "../services/businesses.service";
 const router = Router();
-const role = z.enum(["admin", "encargado", "empleado"]);
+const role = z.enum(["admin", "encargado", "empleado", "repartidor"]);
 const data = z.object({ nombre: z.string().trim().min(2).max(100), rubro: z.string().trim().max(100).nullable().optional(), descripcion: z.string().trim().max(1000).nullable().optional() }).strict();
 const mailLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 40, standardHeaders: "draft-8", legacyHeaders: false });
 router.get("/businesses", async (req,res) => res.json({ success: true, data: await service.list(req.auth!.userId) }));

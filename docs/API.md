@@ -98,24 +98,26 @@ Listas: `?page=1&limit=20&q=Yerba`; `limit` de 1 a 100. Productos admiten `categ
 
 La baja de producto exige stock cero. Categoría/proveedor no puede darse de baja si tiene productos activos asociados.
 
-POST `/products` admite `stock_inicial` opcional, entero entre 0 y 2147483647 (por defecto 0). Si es positivo, crea una entrada de auditoría con autor, negocio y motivo «Existencias iniciales al crear el producto», dentro de la misma transacción que crea el producto. Si falla la auditoría no se crea el producto. PATCH/PUT rechazan `stock_inicial`; las modificaciones posteriores usan movimientos.
+POST `/products` admite `stock_inicial` opcional, entero entre 0 y 2147483647 (por defecto 0). Solo depósito puede crearlo con un valor positivo: registra una entrada en la misma transacción. El administrador puede crear productos con stock cero. PATCH/PUT rechazan `stock_inicial`; las modificaciones posteriores usan recepción o ajuste de depósito.
 
 ## Movimientos
 
-- `POST /movements`: todos pueden entrada/salida; ajuste solo admin/encargado. Devuelve 201.
-- `GET /movements?page=1&limit=20`: admin/encargado ven todos; empleado, solo los propios. Devuelve lista paginada, nombres de producto y responsable.
+- `POST /stock/receive`: solo depósito; `{producto_id,cantidad,motivo}`. Devuelve 201.
+- `POST /stock/ordinary-adjustment`: solo depósito; `{producto_id,cantidad,motivo}` donde cantidad es el stock final.
+- `POST /movements`: ruta de compatibilidad solo para depósito; acepta `entrada` o `ajuste`, nunca `salida`.
+- `GET /movements?page=1&limit=20`: historial paginado. Las salidas se generan al confirmar entregas.
 
 ```json
 {"producto_id":1,"tipo":"entrada","cantidad":10,"motivo":"Compra inicial"}
 ```
 
-Entrada/salida exige entero positivo; ajuste admite cero y significa **stock final deseado**. Motivo obligatorio de hasta 500 caracteres. Máximo stock 2147483647. Devuelve movimiento con `id`, `producto_id`, `usuario_id`, `tipo`, `cantidad`, `stock_anterior`, `stock_nuevo`, `motivo`, `creado_en`. No hay edición/borrado del historial.
+La entrada exige entero positivo; el ajuste admite cero y significa **stock final deseado**. Motivo obligatorio de hasta 500 caracteres. Máximo stock 2147483647. Un ajuste no puede bajar del total reservado. No hay edición/borrado del historial.
 
 ## Dashboard y reportes
 
 | GET | Permiso | Filtros / respuesta |
 |---|---|---|
-| `/dashboard` | Todos | Sin filtros; `{productos,unidades,stock_bajo,sin_stock}` y `valor` solo para responsables |
+| `/dashboard` | Todos | Sin filtros; `{productos,unidades,unidades_reservadas,unidades_disponibles,stock_bajo,sin_stock}` y `valor` solo para responsables |
 | `/reports/summary` | Admin/encargado | `categoria_id`, `producto_id`; métricas actuales con valor |
 | `/reports/stock-value` | Admin/encargado | Mismos filtros; `{summary,categorias:[{id,nombre,productos,unidades,valor}]}` |
 | `/reports/low-stock` | Admin/encargado | Mismos filtros más page/limit; `{items,page,limit}` |
@@ -125,14 +127,14 @@ Fecha `AAAA-MM-DD`, límites inclusivos en UTC. Máximo 366 días en movimientos
 
 ## Negocios, integrantes e invitaciones
 
-JWT y email verificado en todas estas rutas. No requieren header de negocio: el ID del path se autoriza explícitamente. Los listados devuelven `{items}` y solo negocios activos del usuario. Los roles son `admin`, `encargado`, `empleado` y pertenecen a la membresía.
+JWT y email verificado en todas estas rutas. No requieren header de negocio: el ID del path se autoriza explícitamente. Los listados devuelven `{items}` y solo distribuidoras activas del usuario. Los roles son `admin`, `encargado`, `empleado` y `repartidor`; pertenecen a la membresía.
 
 | Método | Ruta | Parámetros / cuerpo |
 |---|---|---|
 | POST | `/businesses` | `{nombre,rubro?,descripcion?}`; 201, negocio y rol admin del creador, transacción atómica |
 | GET | `/businesses` | Negocios del usuario y rol en cada uno |
 | GET | `/businesses/:id` | Información para integrantes activos |
-| PATCH | `/businesses/:id` | Admin; nombre/rubro/descripción o `{activo:false}`; exige stock cero para desactivar |
+| PATCH | `/businesses/:id` | Admin; nombre/rubro/descripción o `{activo:false}`; exige stock cero y ningún pedido abierto para desactivar |
 | GET | `/businesses/:id/members` | Admin; integrantes, rol y estado, sin datos de seguridad global |
 | PATCH | `/businesses/:id/members/:userId` | Admin; `{rol?,estado?:"activo"|"inactivo"}` |
 | DELETE | `/businesses/:id/members/:userId` | Admin; baja de membresía, conserva historial |
@@ -146,6 +148,37 @@ JWT y email verificado en todas estas rutas. No requieren header de negocio: el 
 Los demás resultados correctos devuelven 200. No queda una ruta de administración global `/users`. El perfil propio se edita en `/auth/me`. Siempre se conserva un administrador activo por negocio, incluso ante cambios simultáneos. Desactivar cancela invitaciones, conserva inventario e historial y no ofrece reactivación automática.
 
 Invitaciones: token aleatorio de 32 bytes, SHA-256 en base, 7 días de vigencia. Se acepta solo con una cuenta activa, correo verificado coincidente y negocio activo. El ID de la bandeja tampoco permite aceptar invitaciones de otro email. Aceptar dos veces falla. Un reenvío invalida el token anterior. Si SMTP falla al crear, queda pendiente sin confirmación de envío, disponible para reenvío; nunca se devuelve el token por API. El enlace usa fragmento `#token=` para evitar incluirlo en peticiones HTTP o referers.
+
+## Distribuidoras, clientes, pedidos y entregas (migración 007)
+
+Las rutas siguientes requieren `Authorization: Bearer ...` y `X-Business-Id` de una distribuidora donde el usuario tenga membresía activa. `negocio_id` se conserva como nombre físico de columna; nunca se acepta del cuerpo. Los roles y acciones exclusivas están en [MATRIZ_ROLES.md](MATRIZ_ROLES.md).
+
+| Método | Ruta | Rol | Cuerpo / resultado |
+|---|---|---|---|
+| GET | `/clients` o `/client-ranking` | Jefe, depósito, ventas | Clientes ordenados por última evaluación ponderada; sin evaluar al final |
+| POST | `/clients` | Ventas | `{nombre_comercial,contacto?,email?,telefono?,direccion_entrega,observaciones?}` |
+| PATCH | `/clients/:id` | Jefe, ventas | Campos parciales; `activo` permite baja lógica |
+| GET | `/clients/:id/history` | Jefe, depósito, ventas | Pedidos y evaluaciones |
+| POST | `/clients/:id/ratings` | Jefe, depósito | `{puntualidad,acuerdos,trato,motivo}`; criterios 1–5 |
+| GET | `/orders` | Todos | Repartidor ve solo asignados |
+| POST | `/orders` | Ventas | `{cliente_id,observaciones?,items:[{producto_id,cantidad},...]}`; precio del producto se copia en el detalle |
+| GET | `/orders/:id` | Todos | Detalles e historial; repartidor solo asignados |
+| POST | `/orders/:id/approve-preparation` | Depósito | Reserva stock; pendiente → en preparación |
+| POST | `/orders/:id/ready` | Depósito | En preparación → preparado |
+| POST | `/orders/:id/reject-preparation` | Depósito | `{motivo}`; libera reservas, cancela |
+| GET | `/drivers` | Jefe, depósito | Repartidores activos para asignación |
+| POST | `/orders/:id/assign` | Jefe, depósito | `{repartidor_id}` activo de esta distribuidora |
+| GET | `/deliveries` | Repartidor | Solo entregas asignadas |
+| POST | `/orders/:id/pickup` | Repartidor asignado | Preparado → en reparto |
+| POST | `/orders/:id/delivered` | Repartidor asignado | Descuenta stock y consume reservas una sola vez |
+| POST | `/orders/:id/delivery-failed` | Repartidor asignado | `{motivo}`; conserva reservas para reintento |
+| POST | `/orders/:id/cancel` | Jefe, ventas (propio) | `{motivo}`; libera reservas |
+| POST | `/orders/:id/return` | Jefe, depósito | `{motivo}`; devolución completa, repone stock una vez |
+| POST | `/orders/:id/payment-notice` | Ventas | Registra aviso, **no confirma pago** |
+| GET/POST | `/stock/adjustment-requests` | GET jefe/depósito/ventas; POST depósito/ventas | POST `{producto_id,stock_propuesto,motivo}` |
+| POST | `/stock/adjustment-requests/:id/approve` o `/reject` | Jefe | `{motivo}`; aprobación ajusta stock si respeta reservas |
+
+Por ejemplo, un pedido de 7 aguas a $12,50 y 2 jugos a $5,00 guarda total $97,50. Aprobarlo reserva 7 y 2 unidades sin descontar stock físico; entregarlo crea dos salidas auditadas. Repetir la confirmación devuelve 409. Las transacciones y la clave única de movimientos impiden duplicar la salida.
 
 ## Códigos de error
 

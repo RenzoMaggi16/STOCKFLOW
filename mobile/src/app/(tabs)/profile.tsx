@@ -41,7 +41,7 @@ export default function Profile() {
           }}
         />
       </Card>
-      <Card><SectionHeading title={business.active?.nombre || "Tu negocio"} subtitle={`${roleLabel(business.role)} · Tu espacio actual`} icon="storefront-outline"/><Button title="Información del negocio" secondary onPress={() => router.push("/business-settings")} /><Button title="Cambiar negocio" secondary onPress={() => router.push("/businesses")} /></Card>
+      <Card><SectionHeading title={business.active?.nombre || "Tu distribuidora"} subtitle={`${roleLabel(business.role)} · Tu espacio actual`} icon="storefront-outline"/><Button title="Información de la distribuidora" secondary onPress={() => router.push("/business-settings")} /><Button title="Cambiar distribuidora" secondary onPress={() => router.push("/businesses")} /></Card>
       </View><View style={design.column}>
       <Card>
         <SectionHeading title="Una capa extra de seguridad" subtitle="Segundo factor por email" icon="shield-checkmark-outline"/>

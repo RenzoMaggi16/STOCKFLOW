@@ -3,7 +3,7 @@ import { AppState } from "react-native";
 import { api, onBusinessDenied, setBusinessScope } from "../services/api";
 import { errorMessage } from "../services/session";
 import { useAuth } from "./AuthContext";
-export type Business = { id: number; nombre: string; rubro?: string; descripcion?: string; rol: "admin" | "encargado" | "empleado" };
+export type Business = { id: number; nombre: string; rubro?: string; descripcion?: string; rol: "admin" | "encargado" | "empleado" | "repartidor" };
 type ContextValue = { businesses: Business[]; active: Business | null; role: string; loading: boolean; error: string; revision: number; refresh: () => Promise<Business[]>; select: (id: number) => Promise<void>; clear: () => void };
 const Context = createContext<ContextValue>(null!);
 export function BusinessProvider({ children }: { children: React.ReactNode }) {

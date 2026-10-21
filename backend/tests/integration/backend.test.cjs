@@ -356,7 +356,7 @@ test("API completa contra MySQL (base temporal aislada)", async (t) => {
       },
     );
     await t.test(
-      "movimientos: permisos, stock insuficiente y salidas concurrentes",
+      "recepción y ajuste ordinario exclusivos de depósito",
       async () => {
         const movement = {
           producto_id: product.id,
@@ -364,7 +364,8 @@ test("API completa contra MySQL (base temporal aislada)", async (t) => {
           cantidad: 10,
           motivo: "Compra inicial",
         };
-        await ok("POST", "/movements", movement, employee.accessToken, 201);
+        assert.equal((await req("POST", "/movements", movement, employee.accessToken)).status,403);
+        await ok("POST", "/stock/receive", movement, manager.accessToken, 201);
         assert.equal(
           (
             await req(
@@ -388,20 +389,10 @@ test("API completa contra MySQL (base temporal aislada)", async (t) => {
           403,
         );
         const pair = await Promise.all([
-          req(
-            "POST",
-            "/movements",
-            { ...movement, tipo: "salida", cantidad: 7 },
-            employee.accessToken,
-          ),
-          req(
-            "POST",
-            "/movements",
-            { ...movement, tipo: "salida", cantidad: 7 },
-            manager.accessToken,
-          ),
+          req("POST", "/movements", { ...movement, tipo: "salida", cantidad: 7 }, employee.accessToken),
+          req("POST", "/movements", { ...movement, tipo: "salida", cantidad: 7 }, manager.accessToken),
         ]);
-        assert.deepEqual(pair.map((x) => x.status).sort(), [201, 409]);
+        assert.deepEqual(pair.map((x) => x.status).sort(), [403, 403]);
         assert.equal(
           (
             await ok(
@@ -411,12 +402,12 @@ test("API completa contra MySQL (base temporal aislada)", async (t) => {
               employee.accessToken,
             )
           ).stock,
-          3,
+          10,
         );
         const [[count]] = await admin.query(
           "SELECT COUNT(*) AS total FROM movimientos_stock",
         );
-        assert.equal(count.total, 2);
+        assert.equal(count.total, 1);
         const personal = await ok(
           "GET",
           "/movements",
@@ -428,11 +419,11 @@ test("API completa contra MySQL (base temporal aislada)", async (t) => {
         );
         assert.equal(
           (await ok("GET", "/movements", undefined, owner.accessToken)).total,
-          2,
+          1,
         );
         await ok(
           "POST",
-          "/movements",
+          "/stock/ordinary-adjustment",
           { ...movement, tipo: "ajuste", cantidad: 0 },
           manager.accessToken,
           201,
@@ -443,11 +434,7 @@ test("API completa contra MySQL (base temporal aislada)", async (t) => {
           undefined,
           owner.accessToken,
         );
-        assert.equal(
-          (await req("POST", "/movements", movement, employee.accessToken))
-            .status,
-          404,
-        );
+        assert.equal((await req("POST", "/stock/receive", movement, manager.accessToken)).status,404);
         await ok(
           "DELETE",
           `/categories/${category.id}`,
@@ -463,7 +450,7 @@ test("API completa contra MySQL (base temporal aislada)", async (t) => {
         const [[audit]] = await admin.query(
           "SELECT COUNT(*) AS total FROM movimientos_stock",
         );
-        assert.equal(audit.total, 3);
+        assert.equal(audit.total, 2);
       },
     );
     await t.test("rollback real si falla la auditoría", async () => {
@@ -488,7 +475,7 @@ test("API completa contra MySQL (base temporal aislada)", async (t) => {
       );
       // Fuerza una falla real después del UPDATE del stock; la transacción debe revertirlo.
       await admin.query("CREATE TRIGGER test_audit_failure BEFORE INSERT ON movimientos_stock FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='audit test failure'");
-      assert.equal((await req("POST", "/movements", { producto_id: p.id, tipo: "entrada", cantidad: 5, motivo: "Rollback" }, owner.accessToken)).status, 500);
+      assert.equal((await req("POST", "/stock/receive", { producto_id: p.id, cantidad: 5, motivo: "Rollback" }, manager.accessToken)).status, 500);
       await admin.query("DROP TRIGGER test_audit_failure");
       assert.equal(
         (await ok("GET", `/products/${p.id}`, undefined, owner.accessToken))
@@ -501,13 +488,14 @@ test("API completa contra MySQL (base temporal aislada)", async (t) => {
       const body={nombre:"Inicial",sku:"INITIAL",precio:"2.00",categoria_id:cat.id,stock_inicial:7};
       for(const stock_inicial of [-1,1.5,2147483648,"3"]) assert.equal((await req("POST","/products",{...body,stock_inicial},owner.accessToken)).status,422);
       assert.equal((await req("POST","/products",body,employee.accessToken)).status,403);
-      const p=await ok("POST","/products",body,owner.accessToken,201);
+      assert.equal((await req("POST","/products",body,owner.accessToken)).status,403);
+      const p=await ok("POST","/products",body,manager.accessToken,201);
       assert.equal(p.stock,7);
       const [[movement]]=await admin.execute("SELECT * FROM movimientos_stock WHERE producto_id=?",[p.id]);
-      assert.equal(movement.stock_anterior,0);assert.equal(movement.stock_nuevo,7);assert.equal(movement.cantidad,7);assert.equal(movement.usuario_id,owner.user.id);assert.equal(movement.negocio_id,businessId);
+      assert.equal(movement.stock_anterior,0);assert.equal(movement.stock_nuevo,7);assert.equal(movement.cantidad,7);assert.equal(movement.usuario_id,manager.user.id);assert.equal(movement.negocio_id,businessId);
       assert.equal((await req("PATCH",`/products/${p.id}`,{stock_inicial:10},owner.accessToken)).status,422);
       await admin.query("CREATE TRIGGER initial_failure BEFORE INSERT ON movimientos_stock FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='initial audit test failure'");
-      try { assert.equal((await req("POST","/products",{...body,sku:"INITIAL-FAIL"},owner.accessToken)).status,500); }
+      try { assert.equal((await req("POST","/products",{...body,sku:"INITIAL-FAIL"},manager.accessToken)).status,500); }
       finally {await admin.query("DROP TRIGGER initial_failure");}
       const [[count]]=await admin.query("SELECT COUNT(*) AS total FROM productos WHERE sku='INITIAL-FAIL'");assert.equal(count.total,0);
     });

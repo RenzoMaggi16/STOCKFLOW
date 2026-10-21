@@ -2,7 +2,7 @@
 
 ## Presentación de dos minutos
 
-StockFlow organiza el inventario de un comercio. Permite saber qué productos existen, cuántas unidades quedan y quién modificó cada cantidad. La app Android habla con una API; la API valida permisos y guarda los datos en MySQL. Separamos administrador, encargado y empleado para que cada persona tenga las herramientas necesarias. Cada movimiento queda registrado y una transacción evita inconsistencias aunque dos personas trabajen a la vez.
+StockFlow organiza una distribuidora: productos, clientes, pedidos de varios artículos y entregas. La app Expo habla con una API REST que valida JWT, membresía y uno de cuatro roles antes de guardar en MySQL. Ventas crea el pedido; depósito reserva las unidades; reparto confirma la entrega y recién entonces se descuenta el stock. Cada cambio queda auditado y una transacción evita inconsistencias aunque dos personas trabajen a la vez.
 
 ## Preguntas y respuestas
 
@@ -32,7 +32,13 @@ StockFlow organiza el inventario de un comercio. Permite saber qué productos ex
 
 **¿Qué pasó con los datos anteriores?** La migración conserva las filas y las asigna a un negocio histórico desactivado, sin integrantes. No se presume quién es el propietario. Su recuperación requiere una asignación explícita autorizada.
 
-**¿Cómo evitan stock negativo?** La API bloquea la fila del producto, calcula el nuevo stock y rechaza una salida excesiva. MySQL también tiene una restricción CHECK. Una prueba envía dos salidas simultáneas y verifica que solo una pueda consumir las unidades disponibles.
+**¿Cómo evitan stock negativo?** Al aprobar el pedido, depósito solo puede reservar `stock físico - reservas activas`. La entrega bloquea el pedido y cada producto, resta stock y crea movimientos dentro de una transacción. Dos confirmaciones simultáneas de la misma entrega producen una operación correcta y un 409; no duplican las salidas. Ajustes ordinarios o extraordinarios tampoco pueden bajar del total reservado.
+
+**¿Cuáles son las tres acciones exclusivas de cada rol?** Jefe: invitar o desactivar empleados, asignar roles y resolver ajustes extraordinarios. Depósito: recibir mercadería, aprobar o rechazar preparación y ajustar stock ordinariamente. Ventas: crear clientes, crear pedidos y registrar avisos de pago. Reparto: confirmar retiro, entrega exitosa o fallo. El backend devuelve 403 a cualquier otro rol. [Matriz y pruebas](MATRIZ_ROLES.md).
+
+**¿Qué significa reservar stock?** Las unidades siguen físicamente en el depósito, pero ya no están disponibles para otro pedido. Al entregar, la reserva se consume y se registra la salida. Al cancelar o rechazar se libera. Así se evita prometer las mismas unidades dos veces.
+
+**¿Cómo se calcula el ranking?** La última evaluación guarda 1–5 para puntualidad, acuerdos y trato, más un motivo. La puntuación es `0,5 × puntualidad + 0,3 × acuerdos + 0,2 × trato`. No bloquea clientes ni verifica pagos automáticamente.
 
 **¿Qué es una transacción?** Un grupo de cambios que se guarda completo o se revierte. Actualizar el producto e insertar la auditoría deben ocurrir juntos. La prueba de rollback provoca un fallo al insertar historial y verifica que el stock no haya cambiado.
 
@@ -52,11 +58,11 @@ StockFlow organiza el inventario de un comercio. Permite saber qué productos ex
 
 ## Demostración sugerida
 
-1. Registrar/verificar una cuenta y crear un negocio; explicar la membresía admin.
-2. Crear categoría, proveedor y producto; explicar stock inicial cero.
-3. Registrar entrada 10 y salida 3; mostrar stock 7 e historial.
-4. Intentar salida 8 y explicar el rechazo.
-5. Invitar otra cuenta, aceptar como empleado y comparar permisos. Crear un segundo negocio y mostrar que no comparte productos; el mismo SKU puede existir en ambos.
-6. Ver reportes calculados y editar perfil.
+1. Registrar/verificar una cuenta y crear una distribuidora; explicar la membresía admin.
+2. Invitar cuentas de depósito, ventas y reparto y mostrar que cada una ve acciones distintas.
+3. Depósito recibe 10 unidades de un producto. Ventas crea cliente y pedido con dos productos; mostrar precio fijado y reserva sin salida.
+4. Depósito aprueba/prepara y asigna. Reparto confirma retiro y entrega; mostrar salida auditada y stock descontado una vez.
+5. Evaluar un cliente y explicar los pesos del ranking. Registrar un aviso de pago sin marcarlo como verificado.
+6. Mostrar que otra distribuidora no puede acceder a los mismos clientes ni pedidos y que el mismo usuario puede tener otro rol allí.
 7. Mostrar pruebas de concurrencia y rollback.
 8. Explicar qué fue probado en Android y qué continúa pendiente, sin presentar integraciones sin credenciales como realizadas.

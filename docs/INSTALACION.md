@@ -22,10 +22,10 @@ Variables del backend: DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME; JWT_ACCE
 
 ### Instalación local conservada
 
-La base `stockflow` y el usuario restringido ya existen en este equipo. El `.env` local se conservó al mover la carpeta. MySQL escucha en 3307; no se creó un servicio de inicio automático. Para arrancarlo manualmente:
+La base `stockflow` y el usuario restringido ya existen en este equipo. El `.env` local se conservó al mover la carpeta. Desde el 21/10/2026 MySQL escucha en el puerto 3306 mediante `brew services start mysql@8.4`; el `.env` local usa ese puerto. Antes de la migración 007 se guardó una copia con permisos de propietario en `/Users/renzo/Downloads/stockflow-pre-distribuidora-2026-10-21.sql` (no subirla a Git). Para arrancar MySQL:
 
 ```sh
-/opt/homebrew/opt/mysql@8.4/bin/mysqld --datadir=/opt/homebrew/var/mysql --bind-address=127.0.0.1 --port=3307 --socket=/tmp/stockflow-mysql.sock --mysqlx=OFF --pid-file=/tmp/stockflow-mysql.pid --log-error=/tmp/stockflow-mysql.log
+brew services start mysql@8.4
 ```
 
 Homebrew inicializó root local sin contraseña en la etapa anterior. Proteger la cuenta administrativa antes de usar este equipo como servidor. La API tiene su propia contraseña aleatoria y no usa root.
@@ -38,9 +38,9 @@ Sin SMTP los envíos responden 503; no se imprimen códigos ni se habilita una p
 
 Para desarrollo puede usarse un servidor SMTP local de captura (por ejemplo Mailpit, configurado por el usuario), apuntando SMTP_HOST/PORT a ese servicio. Su bandeja es únicamente de desarrollo. Las pruebas automatizadas ya incluyen un SMTP local efímero y no entregan mensajes al exterior.
 
-## Primer negocio y administrador
+## Primera distribuidora y administrador
 
-Registrar y verificar una cuenta propia, entrar y pulsar Crear negocio. La API crea el negocio y su membresía administradora en una transacción. El rol pertenece al negocio: modificar `usuarios.rol_id` no concede permisos. Invitar integrantes desde Equipo. La migración 005 conserva inventario anterior en un negocio histórico inactivo sin propietario; consultar [Multinegocio](MULTINEGOCIO.md) antes de asignarlo.
+Registrar y verificar una cuenta propia, entrar y pulsar Crear distribuidora. La API crea la distribuidora y su membresía administradora en una transacción. El rol pertenece a esa distribuidora: modificar `usuarios.rol_id` no concede permisos. Invitar integrantes desde Equipo. La migración 005 conserva inventario anterior en una distribuidora histórica inactiva sin propietario; consultar [Multinegocio](MULTINEGOCIO.md) antes de asignarlo.
 
 ## Frontend
 
@@ -73,12 +73,12 @@ Fuentes oficiales consultadas: [Expo OAuth](https://docs.expo.dev/guides/authent
 
 ## EAS y APK
 
-Existe una sesión de Expo en este equipo, comprobada con `npx eas-cli@24.12.1 whoami`, pero este proyecto no tiene ID EAS asignado. No se creó un proyecto remoto ni se consumieron builds pagos.
+El proyecto EAS ya está vinculado a `@renzomaggi/stockflow-estanga` (ID en `mobile/app.config.ts`). Todavía no se ejecutó un build.
 
-1. Configurar un backend HTTPS accesible y comprobar `/api/health` desde el teléfono. El hosting necesita elección y autorización del usuario; no se desplegó automáticamente.
-2. Desde `mobile`, `npx eas-cli@24.12.1 login` si hace falta, luego `npx eas-cli@24.12.1 init` para crear/vincular el proyecto y elegir la cuenta correcta.
-3. Registrar el ID real en `EAS_PROJECT_ID` del entorno. En configuración dinámica, si EAS no puede escribirlo, establecerlo manualmente en el entorno de build. Crear variables de entorno EAS para EXPO_PUBLIC_API_URL y el project ID; los secretos OAuth/SMTP permanecen exclusivamente en backend.
-4. Revisar la cuota y costos del plan antes de confirmar una compilación. `npx eas-cli@24.12.1 build --platform android --profile preview`. `preview` y `production` piden APK; `development` agrega dev client.
+1. Crear un servicio web Node en Render a partir de este repositorio, usando `render.yaml`. Render ofrece un subdominio HTTPS `onrender.com`; completar allí los valores sensibles marcados `sync: false`. La guía oficial es [Deploy a Node Express App](https://render.com/docs/deploy-node-express-app). No subir `.env` a Git. Antes de iniciar la API pública, aplicar la migración 007 a la base MySQL remota con un usuario autorizado para DDL; hacer backup antes. El `stockflow_app` local solo tiene DML y no puede migrar.
+2. Configurar `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSL=true`; usar los datos de Aiven en Render. Configurar `PUBLIC_API_URL=https://TU-SERVICIO.onrender.com`, `WEB_APP_URL` y `CORS_ORIGINS` para el origen web; SMTP y OAuth quedan exclusivamente en el backend. Comprobar `https://TU-SERVICIO.onrender.com/api/health` y un login real desde el teléfono.
+3. En Expo EAS, configurar `EXPO_PUBLIC_API_URL=https://TU-SERVICIO.onrender.com/api` para el entorno de build `preview`. La URL se inserta en el bundle y no es secreta; [Expo documenta las variables EAS](https://docs.expo.dev/eas/environment-variables/). `EAS_PROJECT_ID` ya tiene valor predeterminado en la configuración. No poner credenciales de base, SMTP ni OAuth en `EXPO_PUBLIC_`.
+4. Revisar la cuota del plan y ejecutar `npx eas-cli@24.12.1 build --platform android --profile preview`. `preview` pide APK según [Expo](https://docs.expo.dev/build-reference/apk/).
 5. Configurar firma Android cuando EAS la solicite. Guardar claves/credenciales fuera de Git. Paquete `com.estanga.stockflow`; comprobar disponibilidad antes de publicar en una tienda.
 6. Descargar el archivo `.apk` del build exitoso, verificar su existencia y transferirlo al teléfono. Autorizar instalación desde esa fuente según Android.
 7. Probar registro/verificación/login, cada rol, CRUD, movimientos, 2FA, OAuth y reinicio de app. Apagar y encender red para comprobar errores y recuperación.
@@ -87,22 +87,22 @@ Existe una sesión de Expo en este equipo, comprobada con `npx eas-cli@24.12.1 w
 
 ## Pruebas
 
-Backend: `npm test` no necesita MySQL; `npm run test:integration` crea y elimina bases nuevas `stockflow_test_*`. Usa TEST_DB_PORT (3307), TEST_DB_USER (root), TEST_DB_PASSWORD (vacía) y host 127.0.0.1. Las credenciales deben permitir crear/eliminar bases temporales. PowerShell: `$env:TEST_DB_PORT='3306'`; después ejecutar el comando.
+Backend: `npm test` no necesita MySQL; `TEST_DB_PORT=3306 npm run test:integration` crea y elimina bases nuevas `stockflow_test_*`. Las credenciales de pruebas deben permitir crear/eliminar bases temporales. En PowerShell: `$env:TEST_DB_PORT='3306'`; después ejecutar el comando.
 
 Móvil: `npm test` prueba el gestor de sesión con HTTP real y almacenamiento de prueba. `npm run typecheck`; `npm run export:android`.
 
 Interfaz web automatizada, dos terminales desde mobile:
 
 ```sh
-EXPO_PUBLIC_API_URL=http://127.0.0.1:3001/api npx expo start --web --port 8081
+EXPO_PUBLIC_API_URL=http://127.0.0.1:3001/api npx expo start --web --port 8082
 ```
 
 ```sh
 npx playwright install chromium
-node tests/e2e.cjs
+TEST_DB_PORT=3306 npm run test:e2e
 ```
 
-El test crea una cuenta artificial verificada solo en su base temporal, inicia API en 3001, recorre pantallas y limpia los datos. No usa la base de desarrollo ni prueba entrega externa de correo. Guarda capturas de ejemplo en docs. No ejecutar mientras 3001 esté ocupado.
+El test nuevo crea cuatro cuentas artificiales verificadas solo en su base temporal, inicia API en 3001, recorre las pantallas de cliente, pedido multiproducto, preparación, asignación y entrega, y limpia los datos. No usa la base de desarrollo ni prueba entrega externa de correo. No ejecutar mientras 3001 esté ocupado.
 
 ## Seguridad y despliegue
 

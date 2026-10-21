@@ -87,11 +87,13 @@ test('Multinegocio: migración, invitaciones, aislamiento y permisos', async t =
       await assert.rejects(db.execute('UPDATE productos SET categoria_id=? WHERE id=?',[cb.id,pa.id]));
     });
     await t.test('IDs ajenos no permiten leer, editar, eliminar ni mover stock; reportes aislados',async()=>{
+      await ok('PATCH',`/businesses/${a.id}/members/${worker.user.id}`,{rol:'encargado'});
+      await db.execute("INSERT INTO negocio_usuarios(negocio_id,usuario_id,rol) VALUES(?,?,'encargado')",[b.id,stranger.user.id]);
       for(const method of ['GET','PATCH','DELETE']) assert.equal((await req(method,`/products/${pb.id}`,method==='PATCH'?{nombre:'Intruso'}:null,owner,a.id)).status,404);
       for(const resource of [`categories/${cb.id}`]) assert.equal((await req('GET',`/${resource}`,null,owner,a.id)).status,404);
-      assert.equal((await req('POST','/movements',{producto_id:pb.id,tipo:'entrada',cantidad:10,motivo:'No'},owner,a.id)).status,404);
-      await ok('POST','/movements',{producto_id:pa.id,tipo:'entrada',cantidad:10,motivo:'Ingreso'},owner,a.id,201);
-      await ok('POST','/movements',{producto_id:pb.id,tipo:'entrada',cantidad:3,motivo:'Ingreso'},other,b.id,201);
+      assert.equal((await req('POST','/stock/receive',{producto_id:pb.id,cantidad:10,motivo:'No'},worker,a.id)).status,404);
+      await ok('POST','/stock/receive',{producto_id:pa.id,cantidad:10,motivo:'Ingreso'},worker,a.id,201);
+      await ok('POST','/stock/receive',{producto_id:pb.id,cantidad:3,motivo:'Ingreso'},stranger,b.id,201);
       assert.equal((await ok('GET','/products',null,owner,a.id)).items.length,1);
       assert.equal(Number((await ok('GET','/reports/summary',null,owner,a.id)).valor),50);
       assert.equal(Number((await ok('GET','/dashboard',null,owner,b.id)).unidades),3);
@@ -107,18 +109,18 @@ test('Multinegocio: migración, invitaciones, aislamiento y permisos', async t =
       assert.equal((await req('PATCH',`/businesses/${a.id}/members/${owner.user.id}`,{rol:'empleado'})).status,409);
       assert.equal((await req('DELETE',`/businesses/${a.id}/members/${owner.user.id}`)).status,409);
     });
-    await t.test('concurrencia: último administrador y salidas serializadas',async()=>{
+    await t.test('concurrencia: último administrador y salidas manuales prohibidas',async()=>{
       await ok('PATCH',`/businesses/${a.id}/members/${worker.user.id}`,{rol:'admin',estado:'activo'});
       const changes=await Promise.all([req('PATCH',`/businesses/${a.id}/members/${owner.user.id}`,{rol:'empleado'}),req('PATCH',`/businesses/${a.id}/members/${worker.user.id}`,{rol:'empleado'},worker)]);
       assert.deepEqual(changes.map(r=>r.status).sort(),[200,409]);
       const movement={producto_id:pa.id,tipo:'salida',cantidad:7,motivo:'Concurrente'};
       const pair=await Promise.all([req('POST','/movements',movement,owner,a.id),req('POST','/movements',movement,worker,a.id)]);
-      assert.deepEqual(pair.map(r=>r.status).sort(),[201,409]);
-      assert.equal((await ok('GET',`/products/${pa.id}`,null,owner,a.id)).stock,3);
+      assert.deepEqual(pair.map(r=>r.status).sort(),[403,403]);
+      assert.equal((await ok('GET',`/products/${pa.id}`,null,owner,a.id)).stock,10);
     });
     await t.test('desactivación controlada conserva historial y bloquea acceso',async()=>{
       assert.equal((await req('PATCH',`/businesses/${b.id}`,{activo:false},other)).status,409);
-      await ok('POST','/movements',{producto_id:pb.id,tipo:'ajuste',cantidad:0,motivo:'Cierre'},other,b.id,201);
+      await ok('POST','/stock/ordinary-adjustment',{producto_id:pb.id,cantidad:0,motivo:'Cierre'},stranger,b.id,201);
       await ok('PATCH',`/businesses/${b.id}`,{activo:false},other);
       assert.equal((await req('GET','/products',null,owner,b.id)).status,403);
       assert.equal((await ok('GET','/businesses',null,other)).items.length,0);

@@ -33,7 +33,7 @@ function filter(businessId: number, f: Filters, movement = false) {
 export async function summary(businessId: number, f: Filters = {}) {
   const { where, args } = filter(businessId, f);
   const [rows] = await pool.execute<RowDataPacket[]>(
-    `SELECT COUNT(*) AS productos,COALESCE(SUM(p.stock),0) AS unidades,COALESCE(SUM(p.stock<=p.stock_minimo),0) AS stock_bajo,COALESCE(SUM(p.stock=0),0) AS sin_stock,COALESCE(SUM(p.precio*p.stock),0) AS valor FROM productos p WHERE ${where}`,
+    `SELECT COUNT(*) AS productos,COALESCE(SUM(p.stock),0) AS unidades,COALESCE(SUM(r.cantidad),0) AS unidades_reservadas,COALESCE(SUM(p.stock-COALESCE(r.cantidad,0)),0) AS unidades_disponibles,COALESCE(SUM(p.stock<=p.stock_minimo),0) AS stock_bajo,COALESCE(SUM(p.stock=0),0) AS sin_stock,COALESCE(SUM(p.precio*p.stock),0) AS valor FROM productos p LEFT JOIN (SELECT negocio_id,producto_id,SUM(cantidad) AS cantidad FROM reservas_pedido WHERE estado='activa' GROUP BY negocio_id,producto_id) r ON r.negocio_id=p.negocio_id AND r.producto_id=p.id WHERE ${where}`,
     args,
   );
   return rows[0];

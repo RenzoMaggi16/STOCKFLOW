@@ -1,4 +1,12 @@
-# Estado del proyecto — 17/10/2026
+# Estado del proyecto — 21/10/2026
+
+## Actualización: distribuidoras
+
+La migración 007 se aplicó a la base local tras una copia previa en `/Users/renzo/Downloads/stockflow-pre-distribuidora-2026-10-21.sql`, con permisos de propietario y fuera del repositorio. Se conservan los datos existentes. La API incorpora clientes, pedidos multiproducto, reservas, entregas, devoluciones, ranking y ajustes extraordinarios. Los cuatro roles tienen acciones exclusivas protegidas por middleware y por verificación transaccional. La app Expo incorpora Clientes, Pedidos, Entregas y Ajustes; las pestañas cambian según rol. Ver [matriz](MATRIZ_ROLES.md).
+
+Validación del 21/10: backend compiló; 3 pruebas unitarias y 31 pruebas de integración MySQL/SMTP pasaron. Móvil pasó TypeScript, lint, 4 pruebas de sesión/contexto y exportación Android/Hermes. El recorrido web de Expo contra API y MySQL temporales pasó: ventas creó cliente y pedido con dos productos; depósito reservó, preparó y asignó; repartidor confirmó retiro y entrega. Se corrigió un modal que retenía el foco después de cerrarse. La API local responde en 3000 y Expo web en 8081.
+
+Proyecto EAS vinculado a [@renzomaggi/stockflow-estanga](https://expo.dev/accounts/renzomaggi/projects/stockflow-estanga). **Aún no existe APK**: no hay una API HTTPS pública configurada para insertar en el build. `render.yaml` prepara el servicio de Render, pero debe conectarse una cuenta de hosting y la base MySQL remota. Tampoco hay prueba en el Android físico. El bloque de abajo conserva evidencia histórica de etapas anteriores.
 
 ## Estado vigente: multinegocio
 
@@ -17,7 +25,8 @@ Validación actual: build y TypeScript backend/móvil, lint, 3 pruebas unitarias
 - [ ] Completar consentimiento y retorno real de Google/GitHub/Discord en web y Android.
 - [ ] Completar certificado CA de Aiven; MySQL local sigue activo.
 - [ ] Desplegar backend HTTPS y configurar frontend, CORS y callbacks públicos; Render pendiente.
-- [ ] Asociar proyecto EAS, generar APK y probarlo en Android físico. Exportar Hermes no produce APK.
+- [x] Asociar proyecto EAS.
+- [ ] Generar APK contra API HTTPS pública y probarlo en Android físico. Exportar Hermes no produce APK.
 - [ ] Revisar avisos de dependencias, rendimiento y respaldos externos antes de producción.
 
 Para E2E iniciar Metro en 8082 con API de prueba 3001; ejecutar desde mobile `TEST_WEB_URL=http://localhost:8082 npm run test:e2e` y luego `npm run test:oauth:web`.

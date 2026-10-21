@@ -13,10 +13,10 @@ export default function Team() {
   const base=`/businesses/${business.active?.id}`;
   const members=useResource(`${base}/members`), invitations=useResource(`${base}/invitations`);
   const [inviteOpen,setInviteOpen]=useState(false), [role,setRole]=useState("empleado"), [selected,setSelected]=useState<any>(null), [newRole,setNewRole]=useState("empleado"), [notice,setNotice]=useState("");
-  const roles=[{value:"empleado",label:"Empleado"},{value:"encargado",label:"Encargado"},{value:"admin",label:"Administrador"}];
+  const roles=[{value:"empleado",label:"Ventas"},{value:"encargado",label:"Depósito"},{value:"repartidor",label:"Repartidor"},{value:"admin",label:"Administrador"}];
   return <Guard roles={["admin"]}><Page title="Equipo de trabajo" subtitle={business.active?.nombre}>
     <IdentityBanner title="El trabajo es mejor en equipo." subtitle="Invitá personas, organizá sus roles y compartí un inventario siempre actualizado." badge="PERSONAS Y PERMISOS" icon="people-outline"/>
-    <View style={design.toolbar}><SectionHeading title="Integrantes del negocio" icon="people-outline"/><Button title="Invitar empleado" onPress={()=>setInviteOpen(true)} /></View>
+    <View style={design.toolbar}><SectionHeading title="Integrantes de la distribuidora" icon="people-outline"/><Button title="Invitar empleado" onPress={()=>setInviteOpen(true)} /></View>
     {!!notice && <Text style={styles.pill}>{notice}</Text>}
     <Text style={styles.subtitle}>Los roles y las bajas afectan únicamente a este negocio. Siempre debe quedar un administrador activo.</Text>
     <Status loading={members.loading} error={members.error} retry={members.load} />

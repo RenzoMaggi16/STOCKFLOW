@@ -34,6 +34,9 @@ function Workspace() {
             <Stack.Screen name="business-settings" />
             <Stack.Screen name="users" />
             <Stack.Screen name="team" />
+            <Stack.Screen name="orders/create" options={{title:"Nuevo pedido"}} />
+            <Stack.Screen name="orders/[id]" options={{title:"Detalle del pedido"}} />
+            <Stack.Screen name="stock-adjustments" options={{title:"Ajustes extraordinarios"}} />
           </Stack.Protected>
         </Stack>
   );

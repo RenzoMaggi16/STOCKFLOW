@@ -21,7 +21,7 @@ router.get("/dashboard", async (req, res) => {
   const { valor, ...basic } = metrics;
   res.json({
     success: true,
-    data: req.auth!.role === "empleado" ? basic : metrics,
+    data: ["admin", "encargado"].includes(req.auth!.role) ? metrics : basic,
   });
 });
 router.use("/reports", authorize("admin", "encargado"));

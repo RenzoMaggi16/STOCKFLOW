@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { IdentityBanner, SectionHeading } from "../../components/WorkspaceDesign";
 import { Text } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useBusiness } from "../../contexts/BusinessContext";
 import { useResource } from "../../hooks/useResource";
 import { api } from "../../services/api";
@@ -37,7 +37,8 @@ export default function Movements() {
       }
     >
       <IdentityBanner title="Cada unidad tiene una historia." subtitle="Registrá entradas y salidas para que tu equipo trabaje con existencias actualizadas." badge="ACTIVIDAD DEL INVENTARIO" icon="swap-horizontal-outline"/>
-      <Button title="Registrar movimiento" onPress={() => setOpen(true)} />
+      {role==="encargado"&&<Button title="Registrar recepción o ajuste ordinario" onPress={() => setOpen(true)} />}
+      <Button title="Ajustes extraordinarios" secondary onPress={()=>router.push("/stock-adjustments")}/>
       {!!message && <Text style={styles.pill}>{message}</Text>}
       <Status
         loading={r.loading}
@@ -78,10 +79,7 @@ export default function Movements() {
           }}
           options={[
             { value: "entrada", label: "Entrada" },
-            { value: "salida", label: "Salida" },
-            ...(role !== "empleado"
-              ? [{ value: "ajuste", label: "Ajuste" }]
-              : []),
+            { value: "ajuste", label: "Ajuste ordinario" },
           ]}
         />
         <EntityForm
@@ -107,9 +105,9 @@ export default function Movements() {
           ]}
           label="Revisar operación"
           onSubmit={async (v) => {
-            const { data } = await api.get(`/products/${v.producto_id}`);
-            if (tipo === "salida" && Number(v.cantidad) > data.data.stock)
-              throw new Error("La salida supera el stock disponible.");
+            await api.get(`/products/${v.producto_id}`);
+            if (tipo === "ajuste" && Number(v.cantidad) < 0)
+              throw new Error("El stock no puede ser negativo.");
             setPending({
               ...v,
               producto_id: Number(v.producto_id),
@@ -124,7 +122,7 @@ export default function Movements() {
             message={`${tipo}: ${pending.cantidad} unidades. Motivo: ${pending.motivo}`}
             onConfirm={async () => {
               try {
-                await api.post("/movements", pending);
+                await api.post(tipo==="entrada"?"/stock/receive":"/stock/ordinary-adjustment", pending);
                 setPending(null);
                 setOpen(false);
                 setMessage("Movimiento registrado correctamente");

@@ -6,26 +6,29 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useBusiness } from "../../contexts/BusinessContext";
 import { useResource } from "../../hooks/useResource";
 import { Page, Card, Button, Status, styles, money, colors } from "../../components/ui";
-export default function Dashboard() {
+export default function Dashboard() { const {role}=useBusiness(); return role==="repartidor"?<DriverHome/>:<InventoryDashboard/>; }
+function DriverHome(){const {active}=useBusiness(),r=useResource<any[]>("/deliveries");return <Page title="Mis entregas" subtitle={active?.nombre}><Card><Text style={styles.label}>Tu ruta de hoy</Text><Text style={styles.subtitle}>Revisá tus pedidos asignados, confirmá el retiro y registrá el resultado de cada entrega.</Text><Button title="Abrir entregas" onPress={()=>router.push("/(tabs)/orders")}/></Card><Status loading={r.loading} error={r.error} retry={r.load} empty={!r.data?.length}/>{r.data?.filter(o=>["preparado","en_reparto"].includes(o.estado)).map(o=><Card key={o.id}><Text style={styles.label}>Pedido #{o.id} · {o.nombre_comercial}</Text><Text style={styles.subtitle}>{o.direccion_entrega}</Text><Button title="Ver entrega" secondary onPress={()=>router.push(`/orders/${o.id}`)}/></Card>)}</Page>}
+function InventoryDashboard() {
   const { user } = useAuth();
   const { role, active } = useBusiness();
   const compact = useWindowDimensions().width < 600;
   const r = useResource("/dashboard"), history = useResource("/movements?limit=5"), low = useResource("/products?stock=bajo&limit=4");
-  const manager = role !== "empleado";
+  const manager = role === "admin" || role === "encargado";
   const total = Number(r.data?.productos || 0), shortage = Number(r.data?.stock_bajo || 0);
   const healthy = total ? Math.round((total - shortage) / total * 100) : 0;
   const refresh = () => { void r.load(); void history.load(); void low.load(); };
   return <Page title={`Hola, ${user?.nombre.split(" ")[0]}`} subtitle={`${active?.nombre} · Tu operación, de un vistazo.`}>
-    <View style={styles.row}><Text style={styles.pill}>{active?.nombre}</Text><Button title="Cambiar negocio" secondary onPress={() => router.push("/businesses")} /><Button title="Mi negocio" secondary onPress={() => router.push("/business-settings")} /></View>
+    <View style={styles.row}><Text style={styles.pill}>{active?.nombre}</Text><Button title="Cambiar distribuidora" secondary onPress={() => router.push("/businesses")} /><Button title="Mi distribuidora" secondary onPress={() => router.push("/business-settings")} /></View>
     <View style={[d.hero, compact && { padding: 20, gap: 16 }]}>
       <View style={{ flex: 1, gap: 10, minWidth: 200 }}><Text style={d.eyebrow}>CENTRO DE CONTROL · {role.toUpperCase()}</Text><Text style={[d.heroTitle, compact && { fontSize: 25 }]}>Cada movimiento cuenta.</Text><Text style={d.heroCopy}>Revisá tus existencias y mantené el inventario al día.</Text></View>
-      <View style={{ gap: 10, flexDirection: compact ? "row" : "column", flexWrap: "wrap", ...(compact ? { width: "100%" as const } : {}) }}><Button title="Registrar movimiento" onPress={() => router.push("/(tabs)/movements")}/>{manager && <Button title="Nuevo producto" secondary onPress={() => router.push("/products/create")}/>}</View>
+      <View style={{ gap: 10, flexDirection: compact ? "row" : "column", flexWrap: "wrap", ...(compact ? { width: "100%" as const } : {}) }}>{role==="encargado"&&<Button title="Registrar recepción" onPress={() => router.push("/(tabs)/movements")}/>}<Button title="Ver pedidos" secondary onPress={()=>router.push("/(tabs)/orders")}/>{manager && <Button title="Nuevo producto" secondary onPress={() => router.push("/products/create")}/>}</View>
     </View>
     <View style={[styles.row, { justifyContent: "space-between" }]}><Text style={d.section}>Resumen del inventario</Text><Button title="Actualizar" secondary disabled={r.loading || history.loading || low.loading} onPress={refresh}/></View>
     <Status loading={r.loading} error={r.error} retry={r.load}/>
     <View style={styles.row}>{([
       ["productos", "Productos activos", "cube-outline", "#E8F2FF", "#2563A6"],
-      ["unidades", "Unidades disponibles", "layers-outline", "#E1F3EA", "#087F5B"],
+      ["unidades_disponibles", "Unidades libres", "layers-outline", "#E1F3EA", "#087F5B"],
+      ["unidades_reservadas", "Unidades reservadas", "bookmark-outline", "#E8F2FF", "#2563A6"],
       ["stock_bajo", "Stock bajo", "alert-circle-outline", "#FFF3DA", "#966008"],
       ["sin_stock", "Sin existencias", "remove-circle-outline", "#FDEBE8", "#B42318"],
     ] as const).map(([key,label,icon,bg,tint]) => <Pressable key={key} accessibilityRole="button" accessibilityLabel={`Consultar ${label.toLowerCase()}`} onPress={() => router.push({ pathname: "/(tabs)/products", params: { stock: key === "stock_bajo" ? "bajo" : key === "sin_stock" ? "sin" : "" } })} style={({ pressed }) => [d.metric, { opacity: pressed ? .75 : 1 }]}><View style={[d.icon,{backgroundColor:bg}]}><Ionicons name={icon} size={23} color={tint}/></View><Text style={d.number}>{r.error ? "—" : r.data?.[key] ?? "—"}</Text><Text style={styles.subtitle}>{label}</Text><Text style={{color:tint,fontWeight:"600",fontSize:12}}>Consultar →</Text></Pressable>)}</View>

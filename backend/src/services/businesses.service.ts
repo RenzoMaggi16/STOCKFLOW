@@ -32,6 +32,8 @@ export async function edit(actor: BusinessActor, data: Partial<BusinessData> & {
     if (data.activo === false) {
       const [stock] = await conn.execute<RowDataPacket[]>("SELECT id FROM productos WHERE negocio_id=? AND stock<>0 LIMIT 1", [actor.businessId]);
       if (stock.length) throw new HttpError(409, "Dejá el stock en cero antes de desactivar el negocio", "NONZERO_STOCK");
+      const [orders] = await conn.execute<RowDataPacket[]>("SELECT id FROM pedidos WHERE negocio_id=? AND estado IN ('pendiente','en_preparacion','preparado','en_reparto','entrega_fallida') LIMIT 1",[actor.businessId]);
+      if(orders.length) throw new HttpError(409,"Resolvé los pedidos abiertos antes de desactivar la distribuidora","ACTIVE_ORDERS");
       await conn.execute("UPDATE invitaciones SET estado='cancelada' WHERE negocio_id=? AND estado='pendiente'", [actor.businessId]);
     }
     // Lista fija de columnas, sin identificadores SQL enviados por el cliente.

@@ -234,6 +234,7 @@ export function Sheet({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  if (!visible) return null;
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>

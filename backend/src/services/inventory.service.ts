@@ -27,7 +27,7 @@ export async function save(
   id?: number,
 ) {
   return transaction(async (conn) => {
-    await lockAccess(conn, actor, ["admin", "encargado"]);
+    await lockAccess(conn, actor, entity === "products" && !id && Number(data.stock_inicial ?? 0) > 0 ? ["encargado"] : ["admin", "encargado"]);
     if (id) await repo.getActive(conn, entity, id, actor.businessId);
     if (entity === "products") {
       if (data.categoria_id !== undefined)
@@ -58,6 +58,10 @@ export async function deactivate(actor: BusinessActor, entity: repo.Entity, id: 
         "Primero registrá la salida o ajuste del stock restante",
         "NONZERO_STOCK",
       );
+    if (entity === "products") {
+      const [reserved] = await conn.execute<RowDataPacket[]>("SELECT id FROM reservas_pedido WHERE negocio_id=? AND producto_id=? AND estado='activa' LIMIT 1", [actor.businessId,id]);
+      if (reserved.length) throw new HttpError(409,"El producto tiene reservas activas","ACTIVE_RESERVATIONS");
+    }
     if (entity !== "products") {
       const column = entity === "categories" ? "categoria_id" : "proveedor_id";
       const [rows] = await conn.execute<RowDataPacket[]>(
@@ -126,15 +130,18 @@ export async function recordMovement(
   actor: BusinessActor,
 ) {
   return transaction(async (conn) => {
-    await lockAccess(conn, actor, data.tipo === "ajuste" ? ["admin", "encargado"] : undefined);
+    await lockAccess(conn, actor, ["encargado"]);
+    if (data.tipo === "salida") throw new HttpError(403,"Las salidas se registran al entregar pedidos","ORDER_DELIVERY_REQUIRED");
     // El candado se conserva hasta guardar tanto el stock como su auditoría.
     const product = await repo.getActive(conn, "products", data.producto_id, actor.businessId);
     const before = Number(product.stock);
+    const [reserved] = await conn.execute<RowDataPacket[]>("SELECT COALESCE(SUM(cantidad),0) AS total FROM reservas_pedido WHERE negocio_id=? AND producto_id=? AND estado='activa'",[actor.businessId,data.producto_id]);
+    const reservedStock = Number(reserved[0].total);
     const after =
       data.tipo === "ajuste"
         ? data.cantidad
         : before + (data.tipo === "entrada" ? data.cantidad : -data.cantidad);
-    if (after < 0)
+    if (after < reservedStock)
       throw new HttpError(409, "Stock insuficiente", "INSUFFICIENT_STOCK");
     if (after > 2147483647)
       throw new HttpError(409, "Se supera el stock máximo", "STOCK_OVERFLOW");

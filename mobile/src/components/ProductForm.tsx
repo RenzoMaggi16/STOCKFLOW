@@ -2,6 +2,7 @@ import { EntityForm, type Field } from "./EntityForm";
 import { api } from "../services/api";
 import { Text } from "react-native";
 import { Card, styles, money } from "./ui";
+import { useBusiness } from "../contexts/BusinessContext";
 const fields: Field[] = [
   { name: "nombre", label: "Nombre", required: true, section:"Identidad del producto" },
   { name: "sku", label: "SKU único", required: true },
@@ -49,9 +50,10 @@ export function ProductForm({
   initial?: any;
   onSaved: () => void;
 }) {
+  const {role}=useBusiness();
   return (
     <EntityForm
-      fields={initial ? fields : [...fields.slice(0,5), {name:"stock_inicial",label:"Existencias iniciales",numeric:true,required:true,hint:"Se registra una entrada inicial automáticamente. Dejá 0 si todavía no tenés unidades.",validate:(v:string)=>(/^\d+$/.test(v) && Number(v)<=2147483647) || "Ingresá un entero entre 0 y 2147483647"}, ...fields.slice(5)]}
+      fields={initial || role!=="encargado" ? fields : [...fields.slice(0,5), {name:"stock_inicial",label:"Existencias iniciales",numeric:true,required:true,hint:"Se registra una entrada inicial automáticamente. Dejá 0 si todavía no tenés unidades.",validate:(v:string)=>(/^\d+$/.test(v) && Number(v)<=2147483647) || "Ingresá un entero entre 0 y 2147483647"}, ...fields.slice(5)]}
       initial={initial || { stock_minimo: 0, stock_inicial:0 }}
       preview={v=>{
         if(!v.costo_compra || !v.precio || !/^\d{1,10}(\.\d{1,2})?$/.test(v.costo_compra) || !/^\d{1,10}(\.\d{1,2})?$/.test(v.precio)) return null;
@@ -61,7 +63,7 @@ export function ProductForm({
       onSubmit={async (v) => {
         const body = {
           ...v,
-          ...(!initial ? {stock_inicial:Number(v.stock_inicial)} : {}),
+          ...(!initial ? {stock_inicial:role==="encargado"?Number(v.stock_inicial):0} : {}),
           costo_compra: v.costo_compra || null,
           stock_minimo: Number(v.stock_minimo),
           categoria_id: Number(v.categoria_id),

@@ -4,7 +4,7 @@ import { Page, Status } from "./ui";
 import { useBusiness } from "../contexts/BusinessContext";
 export function Guard({
   children,
-  roles = ["admin", "encargado", "empleado"],
+  roles = ["admin", "encargado", "empleado", "repartidor"],
 }: {
   children: React.ReactNode;
   roles?: string[];

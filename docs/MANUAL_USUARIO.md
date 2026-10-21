@@ -17,15 +17,15 @@ La sesión se conserva de forma segura en Android. La vista web de desarrollo re
 
 ## Navegación
 
-Después de verificar el correo, si no tenés negocios se abre Tus negocios. Elegí Crear negocio, completá nombre, rubro y descripción y confirmá. Serás administrador de ese negocio. Si tenés uno solo se selecciona automáticamente; si tenés varios, elegí uno. Cambiar negocio está disponible en Inicio y Perfil: descarta los datos visibles y carga el inventario del elegido.
+Después de verificar el correo, si no tenés distribuidoras se abre Tus distribuidoras. Elegí Crear distribuidora, completá nombre, rubro y descripción y confirmá. Serás administrador de esa distribuidora. Si tenés una sola se selecciona automáticamente; si tenés varias, elegí una. Cambiar distribuidora está disponible en Inicio y Perfil: descarta los datos visibles y carga la información de la elegida.
 
-Las cuatro pestañas son Inicio, Productos, Movimientos y Perfil. Inicio muestra el nombre del negocio, productos activos, unidades, stock bajo, faltantes y movimientos recientes. Categorías y Proveedores se abren desde Inicio. Los responsables ven valor de inventario y Reportes; solo administradores ven Equipo. Mi negocio muestra su información y permite editarla si sos administrador.
+Las pestañas cambian según el rol: Inicio, Productos, Clientes, Pedidos, Stock y Perfil cuando corresponda. El repartidor ve Inicio, Entregas y Perfil. Inicio muestra el inventario o las entregas asignadas. Categorías y Proveedores se abren desde Inicio; solo administradores ven Equipo. Mi distribuidora muestra su información y permite editarla si sos administrador.
 
 ## Productos
 
 Buscar nombre/SKU, seleccionar categoría y filtrar disponibles, stock bajo o sin stock. Las listas tienen páginas de veinte registros. Ver producto muestra precio, descripción, stock y mínimo.
 
-Admin/encargado pueden crear y editar. El formulario pide nombre, SKU único, precio decimal con punto, categoría, mínimo y proveedor opcional. Seleccionar referencias desde su listado; no hace falta conocer IDs SQL. Podés cargar Existencias iniciales al crear el producto (0 por defecto). El sistema registra automáticamente una entrada en el historial; no necesitás otra pantalla. Para cambiar stock después de crearlo se siguen usando movimientos.
+Admin/encargado pueden crear y editar. El formulario pide nombre, SKU único, precio decimal con punto, categoría, mínimo y proveedor opcional. Seleccionar referencias desde su listado; no hace falta conocer IDs SQL. Solo depósito puede cargar existencias iniciales positivas al crear el producto; el administrador lo crea con stock cero. Para cambiar stock después se registra una recepción o ajuste de depósito.
 
 En Categoría o Proveedor, escribí el nombre en Buscar y presioná Enter (o el botón Usar o crear en celular). Si ya existe, se selecciona; si no, se crea dentro del negocio activo y queda seleccionada. El registro se guarda inmediatamente, aunque canceles el producto. Las colisiones de nombres se informan sin duplicar registros.
 
@@ -37,11 +37,21 @@ Solo admin puede desactivar. Debe llevar primero el stock a cero mediante una op
 
 Todos pueden consultar y buscar. Admin/encargado crean y editan. Admin desactiva cuando no hay productos activos asociados. Proveedores permite consultar sus productos. Para quitar ese filtro, usar Quitar filtro de proveedor en Productos.
 
+## Clientes, pedidos y entregas
+
+Ventas abre Clientes → Nuevo cliente, completa nombre comercial y dirección de entrega, y opcionalmente contacto, correo, teléfono y observaciones. El listado muestra una prioridad de 1 a 5 estrellas; jefe o depósito pueden evaluar puntualidad de pagos, cumplimiento de acuerdos y trato. Cada evaluación guarda motivo y fecha. El historial del cliente conserva pedidos y evaluaciones. La puntuación es orientativa.
+
+En Pedidos → Nuevo pedido, ventas elige cliente y agrega productos con cantidad. Puede combinar varios productos; el precio unitario y el total quedan fijados al crear. Crear un pedido no resta stock. Depósito abre el detalle, aprueba la preparación (que reserva las unidades disponibles), marca preparado y asigna un repartidor. Si falta stock, la aprobación responde con un error sin crear reservas parciales. Rechazar o cancelar libera reservas.
+
+Reparto ve solo sus pedidos asignados en Entregas. Confirma retiro y luego entrega exitosa o falla con motivo. La entrega exitosa resta stock y genera movimientos de salida una sola vez. La falla conserva las reservas; jefe o depósito pueden reasignar y reintentar, o se puede cancelar. Una devolución completa de un pedido entregado repone stock una vez. El detalle muestra fecha y autor de cada estado.
+
+Ventas puede registrar un aviso de pago en el detalle. Es un dato informativo: **no confirma que el dinero haya llegado**.
+
 ## Movimientos
 
-Elegir Registrar movimiento, tipo, producto, cantidad y motivo. Revisar operación muestra confirmación; Confirmar guarda. Entradas y salidas requieren cantidad positiva. La app comprueba stock antes de una salida y el backend vuelve a verificarlo dentro de una transacción.
+El encargado de depósito elige Registrar recepción o ajuste ordinario, producto, cantidad y motivo. Revisar operación muestra confirmación; Confirmar guarda. La recepción requiere cantidad positiva. Las salidas se generan al confirmar la entrega de pedidos, nunca desde un movimiento manual.
 
-Ajuste solo está disponible a admin/encargado: la cantidad es el stock final deseado, no la diferencia. Ejemplo: stock actual 7 y ajuste 4 deja 4. Siempre indicar motivo.
+En un ajuste ordinario, la cantidad es el stock final deseado, no la diferencia. Ejemplo: stock actual 7 y ajuste 4 deja 4, si no hay reservas que lo impidan. Los ajustes extraordinarios se solicitan con motivo desde Stock; solo el jefe puede aprobarlos o rechazarlos.
 
 El historial muestra producto, usuario, fecha, tipo, cantidad, stock anterior/nuevo y motivo. Empleado ve solo sus operaciones. No se editan ni borran movimientos: registrar una corrección autorizada.
 
@@ -51,13 +61,13 @@ Admin/encargado ven valor actual, faltantes, stock bajo y estadísticas por cate
 
 ## Equipo e invitaciones
 
-En Inicio → Equipo, un administrador puede invitar por correo y elegir Empleado, Encargado o Administrador. Se envía un enlace válido por siete días. La sección Invitaciones enviadas permite consultar estado, reenviar (esperando al menos un minuto) o cancelar. Reenviar invalida el enlace anterior. Si el correo falló, la invitación queda pendiente para reintentar.
+En Inicio → Equipo, un administrador puede invitar por correo y elegir Ventas, Depósito, Repartidor o Administrador. Se envía un enlace válido por siete días. La sección Invitaciones enviadas permite consultar estado, reenviar (esperando al menos un minuto) o cancelar. Reenviar invalida el enlace anterior. Si el correo falló, la invitación queda pendiente para reintentar.
 
 El destinatario abre el enlace, inicia sesión o se registra con la dirección invitada y verifica ese email. También encontrará la invitación en Tus negocios → Invitaciones recibidas. Al aceptar se incorpora al equipo y comparte su inventario. Un enlace vencido, cancelado, utilizado o perteneciente a otro email no se acepta.
 
 Administrar integrante permite cambiar rol, quitar del negocio o restaurar acceso. Los cambios afectan únicamente ese negocio, sin editar el perfil personal ni cerrar sesiones en otros negocios. Siempre debe quedar un administrador activo. Podés ser administrador en un negocio y empleado en otro.
 
-Mi negocio → Desactivar negocio exige stock cero y confirmación. Conserva el historial, cancela invitaciones y bloquea acceso al negocio. No borra cuentas ni otros negocios.
+Mi distribuidora → Desactivar distribuidora exige stock cero, ningún pedido abierto y confirmación. Conserva el historial, cancela invitaciones y bloquea acceso a esa distribuidora. No borra cuentas ni otras distribuidoras.
 
 ## Perfil y salida
 
@@ -73,4 +83,4 @@ Editar el nombre desde Perfil. Activar/desactivar segundo factor requiere códig
 
 ## Diferencias por rol
 
-Empleado consulta y registra entradas/salidas, con historial propio. Encargado además crea/edita inventario, ajusta y consulta reportes. Administrador también realiza bajas y administra usuarios. Todos gestionan su perfil y seguridad.
+Ventas crea clientes y pedidos y registra avisos de pago. Depósito recibe mercadería, aprueba preparación y ajusta stock ordinariamente. Repartidor retira, entrega o registra fallas solo en pedidos asignados. Jefe invita y administra roles y decide ajustes extraordinarios. Todos gestionan su perfil y seguridad. Ver [matriz completa](MATRIZ_ROLES.md).

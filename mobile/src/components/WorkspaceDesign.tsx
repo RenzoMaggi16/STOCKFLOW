@@ -2,7 +2,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "./ui";
 
-export const roleLabel = (role: string) => ({admin:"Administrador",encargado:"Encargado",empleado:"Empleado"}[role] || role);
+export const roleLabel = (role: string) => ({admin:"Jefe / Administrador",encargado:"Encargado de depósito",empleado:"Empleado de ventas",repartidor:"Repartidor"}[role] || role);
 export function IdentityBanner({ title, subtitle, badge, icon = "storefront-outline" }: {title:string;subtitle:string;badge:string;icon?: keyof typeof Ionicons.glyphMap}) {
   return <View style={design.banner}><View style={design.emblem}><Ionicons name={icon} size={32} color="#B8F36B" /></View><View style={{flex:1,minWidth:180,gap:8}}><Text style={design.eyebrow}>{badge}</Text><Text style={design.heading}>{title}</Text><Text style={design.copy}>{subtitle}</Text></View></View>;
 }

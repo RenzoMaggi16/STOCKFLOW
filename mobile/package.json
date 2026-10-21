@@ -49,7 +49,7 @@
     "test": "tsx --test tests/*.test.ts",
     "export:android": "expo export --platform android",
     "build:apk": "npx eas-cli@24.12.1 build --platform android --profile preview",
-    "test:e2e": "node tests/e2e.cjs",
+    "test:e2e": "node tests/distributor-e2e.cjs",
     "lint": "expo lint",
     "test:oauth:web": "node tests/oauth-web.cjs"
   },

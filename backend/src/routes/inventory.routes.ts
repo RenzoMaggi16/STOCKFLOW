@@ -12,7 +12,7 @@ import {
 import * as service from "../services/inventory.service";
 import { detail, type Entity } from "../repositories/inventory.repository";
 const router = Router();
-router.use(authorize("admin", "encargado", "empleado"));
+router.use(authorize("admin", "encargado", "empleado", "repartidor"));
 function crud(entity: Entity, schema: z.ZodObject<z.ZodRawShape>) {
   router.get(`/${entity}`, async (req, res) =>
     res.json({
@@ -69,7 +69,7 @@ function crud(entity: Entity, schema: z.ZodObject<z.ZodRawShape>) {
 crud("categories", categorySchema);
 crud("suppliers", supplierSchema);
 crud("products", productSchema);
-router.post("/movements", async (req, res) =>
+router.post("/movements", authorize("encargado"), async (req, res) =>
   res.status(201).json({
     success: true,
     data: await service.recordMovement(
@@ -78,7 +78,9 @@ router.post("/movements", async (req, res) =>
     ),
   }),
 );
-router.get("/movements", async (req, res) => {
+router.post("/stock/receive", authorize("encargado"), async (req,res) => res.status(201).json({success:true,data:await service.recordMovement(movementSchema.parse({...req.body,tipo:"entrada"}),req.auth!)}));
+router.post("/stock/ordinary-adjustment", authorize("encargado"), async (req,res) => res.status(201).json({success:true,data:await service.recordMovement(movementSchema.parse({...req.body,tipo:"ajuste"}),req.auth!)}));
+router.get("/movements", authorize("admin", "encargado", "empleado"), async (req, res) => {
   const { page, limit } = listSchema
     .pick({ page: true, limit: true })
     .parse(req.query);

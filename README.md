@@ -1,10 +1,10 @@
 # StockFlow
 
-Aplicación multinegocio de inventario, desarrollada como proyecto final escolar. Cada persona puede crear negocios, invitar integrantes por correo y trabajar con un rol diferente en cada uno. Productos, proveedores, categorías, reportes y movimientos se aíslan por negocio.
+Aplicación móvil de gestión de distribuidoras, desarrollada como proyecto final escolar. Cada persona puede crear distribuidoras, invitar integrantes por correo y trabajar con un rol diferente en cada una. Productos, clientes, pedidos, reservas, entregas y movimientos se aíslan por distribuidora.
 
 ## Estado real
 
-Backend y frontend multinegocio implementados, con pruebas de aislamiento, invitaciones y cambio de contexto. El usuario confirmó registro y código por correo real. OAuth Google/GitHub/Discord llega a las pantallas de ingreso; el consentimiento y retorno real de cada cuenta siguen pendientes. Se exportó el bundle Android; **no hay APK compilado ni prueba en teléfono**. Ver [arquitectura multinegocio](docs/MULTINEGOCIO.md) y [checklist y evidencia](docs/ESTADO_PROYECTO.md).
+La API y la app Expo incluyen cuatro roles, clientes, pedidos multiproducto, reservas, entregas, devoluciones y ranking. Hay pruebas de integración de estos flujos con MySQL temporal. El registro por correo fue comprobado por el usuario; el retorno OAuth real de cada proveedor sigue pendiente de validar. **No hay APK compilado ni prueba en teléfono**. Ver [matriz de roles](docs/MATRIZ_ROLES.md) y [estado y evidencia](docs/ESTADO_PROYECTO.md).
 
 ## Tecnologías y arquitectura
 
@@ -23,19 +23,16 @@ stockflow/
 
 ## Funciones y roles
 
-| Función | Admin | Encargado | Empleado |
-|---|---|---|---|
-| Consultar inventario, categorías y proveedores | Sí | Sí | Sí |
-| Crear/editar catálogos y productos | Sí | Sí | No |
-| Desactivar catálogos y productos | Sí | No | No |
-| Entradas y salidas | Sí | Sí | Sí |
-| Ajustes, reportes y todo el historial | Sí | Sí | No |
-| Historial propio y perfil | Sí | Sí | Sí |
-| Administrar usuarios | Sí | No | No |
+| Rol | Sus tres acciones exclusivas |
+|---|---|
+| Jefe/administrador | Invitar o desactivar empleados; asignar roles; resolver ajustes extraordinarios |
+| Encargado de depósito | Recibir mercadería; aprobar o rechazar preparación; ajustar inventario ordinariamente |
+| Empleado de ventas | Crear clientes; crear pedidos; registrar avisos de pago |
+| Repartidor | Confirmar retiro; confirmar entrega; registrar fallas |
 
-Incluye registro, recuperación, verificación de email y segundo factor opcional por correo. Registrarse crea una identidad sin rol global. Crear un negocio asigna el rol administrador de ese negocio; las invitaciones asignan el rol elegido por su administrador. El stock no se cambia editando productos; cada movimiento conserva negocio, autor, fecha, motivo y cantidades anterior/nueva. La matriz de permisos anterior se aplica por negocio.
+Incluye registro, recuperación, verificación de email y segundo factor opcional por correo. Registrarse crea una identidad sin rol global. Crear una distribuidora asigna el rol administrador de esa distribuidora; las invitaciones asignan el rol elegido. Las salidas de stock ocurren al confirmar entregas, con reservas previas y auditoría. Ver el detalle de endpoints y permisos en [MATRIZ_ROLES.md](docs/MATRIZ_ROLES.md).
 
-Al actualizar una instalación previa, la migración 005 conserva su inventario en un negocio histórico desactivado y sin integrantes. No se adjudica a un usuario automáticamente. Después de iniciar sesión, creá tu negocio o aceptá una invitación. Ver la estrategia de conservación en [Multinegocio](docs/MULTINEGOCIO.md).
+Las migraciones 005 y 007 conservan el inventario previo y amplían el modelo sin recrear las tablas existentes. La 005 archiva el inventario anterior a multinegocio sin asignarle un dueño automáticamente. Hacé copia de MySQL antes de actualizar una instalación con datos. Ver [Multinegocio](docs/MULTINEGOCIO.md).
 
 ## Inicio rápido
 
@@ -69,7 +66,7 @@ npm --prefix mobile test
 npm --prefix mobile run export:android
 ```
 
-La integración necesita MySQL. Las bases temporales `stockflow_test_*` se crean y eliminan de forma aislada. Ver [pruebas web y evidencia](docs/ESTADO_PROYECTO.md).
+La integración necesita MySQL. Las bases temporales `stockflow_test_*` se crean y eliminan de forma aislada. En este equipo se usa `TEST_DB_PORT=3306` para las pruebas. Ver [matriz y pruebas](docs/MATRIZ_ROLES.md).
 
 ## APK
 

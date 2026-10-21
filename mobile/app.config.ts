@@ -59,8 +59,6 @@ const config: ExpoConfig = {
     ],
   ],
   web: { bundler: "metro" },
-  extra: process.env.EAS_PROJECT_ID
-    ? { eas: { projectId: process.env.EAS_PROJECT_ID } }
-    : {},
+  extra: { eas: { projectId: process.env.EAS_PROJECT_ID || "eb4f5c5c-8760-445c-8646-4dc35f813379" } },
 };
 export default config;
