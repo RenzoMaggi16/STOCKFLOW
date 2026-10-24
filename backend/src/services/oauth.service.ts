@@ -177,26 +177,38 @@ export async function complete(p: Provider, state: string, code: string) {
   const ticket = randomBytes(32).toString("hex");
   await transaction(async (conn) => {
     const [linked] = await conn.execute<RowDataPacket[]>(
-      "SELECT usuario_id FROM auth_proveedores WHERE proveedor=? AND proveedor_usuario_id=?",
+      "SELECT usuario_id FROM auth_proveedores WHERE proveedor=? AND proveedor_usuario_id=? FOR UPDATE",
       [p, sub],
     );
     let id = linked[0]?.usuario_id;
     if (!id) {
       const [existing] = await conn.execute<RowDataPacket[]>(
-        "SELECT id FROM usuarios WHERE email=?",
+        "SELECT id,activo FROM usuarios WHERE email=? FOR UPDATE",
         [email],
       );
-      if (existing.length)
+      if (existing.length && !verified)
         throw new HttpError(
           409,
-          "Este email ya tiene cuenta. Iniciá sesión con su método original; no se vinculan cuentas automáticamente.",
-          "ACCOUNT_EXISTS",
+          "Ese email ya tiene cuenta, pero el proveedor no confirmó que te pertenezca. Iniciá sesión con tu método original para protegerla.",
+          "ACCOUNT_EXISTS_UNVERIFIED",
         );
-      const [created] = await conn.execute<ResultSetHeader>(
-        "INSERT INTO usuarios(nombre,email,rol_id,email_verificado) VALUES(?,?,(SELECT id FROM roles WHERE nombre='empleado'),?)",
-        [name, email, verified],
-      );
-      id = created.insertId;
+      if (existing.length) {
+        if (!existing[0].activo)
+          throw new HttpError(401, "La cuenta está desactivada", "INVALID_USER");
+        id = Number(existing[0].id);
+        // Un correo confirmado por el proveedor permite asociar el nuevo método
+        // a la cuenta existente, sin cambiar su perfil ni sus permisos.
+        await conn.execute(
+          "UPDATE usuarios SET email_verificado=1 WHERE id=?",
+          [id],
+        );
+      } else {
+        const [created] = await conn.execute<ResultSetHeader>(
+          "INSERT INTO usuarios(nombre,email,rol_id,email_verificado) VALUES(?,?,(SELECT id FROM roles WHERE nombre='empleado'),?)",
+          [name, email, verified],
+        );
+        id = created.insertId;
+      }
       await conn.execute(
         "INSERT INTO auth_proveedores(usuario_id,proveedor,proveedor_usuario_id) VALUES(?,?,?)",
         [id, p, sub],

@@ -430,6 +430,50 @@ test("Cuentas, reportes y correo SMTP local real", async (t) => {
         env.DISCORD_CLIENT_SECRET = "";
       }
     });
+    await t.test("Google vincula un email verificado a la cuenta existente", async () => {
+      const oauth = require("../../dist/services/oauth.service");
+      const env = require("../../dist/config/env").env;
+      const originalFetch = global.fetch;
+      env.GOOGLE_CLIENT_ID = "test-google";
+      env.GOOGLE_CLIENT_SECRET = "test-secret";
+      const verifier = "g".repeat(64);
+      const challenge = crypto.createHash("sha256").update(verifier).digest("base64url");
+      const started = await oauth.start("google", challenge, "native");
+      const state = new URL(started.url).searchParams.get("state");
+      global.fetch = async (url) => {
+        if (url === "https://oauth2.googleapis.com/token") return Response.json({ access_token: "google-test-token" });
+        if (url === "https://openidconnect.googleapis.com/v1/userinfo") return Response.json({ sub: "google-existing-account", email: employee.user.email, name: "Google Employee", email_verified: true });
+        throw new Error("Unexpected request");
+      };
+      try {
+        const ticket = await oauth.complete("google", state, "test-code");
+        const session = await oauth.exchange(ticket, verifier);
+        // MFA remains mandatory even when Google has been linked successfully.
+        assert.equal(session.requiresMfa, true);
+        assert.ok(session.challengeId);
+        const [[link]] = await db.execute(
+          "SELECT usuario_id FROM auth_proveedores WHERE proveedor='google' AND proveedor_usuario_id='google-existing-account'",
+        );
+        assert.equal(link.usuario_id, employee.user.id);
+
+        const unverified = await auth.register("Sin verificar", "unverified@example.com", "ClaveSegura123");
+        const second = await oauth.start("google", challenge, "native");
+        const secondState = new URL(second.url).searchParams.get("state");
+        global.fetch = async (url) => {
+          if (url === "https://oauth2.googleapis.com/token") return Response.json({ access_token: "google-unverified-token" });
+          if (url === "https://openidconnect.googleapis.com/v1/userinfo") return Response.json({ sub: "google-unverified-account", email: unverified.user.email, name: "Unverified", email_verified: false });
+          throw new Error("Unexpected request");
+        };
+        await assert.rejects(
+          oauth.complete("google", secondState, "test-code"),
+          (error) => error.code === "ACCOUNT_EXISTS_UNVERIFIED",
+        );
+      } finally {
+        global.fetch = originalFetch;
+        env.GOOGLE_CLIENT_ID = "";
+        env.GOOGLE_CLIENT_SECRET = "";
+      }
+    });
     await t.test(
       "OAuth sin credenciales informa bloqueo, ticket usa prueba de posesión",
       async () => {

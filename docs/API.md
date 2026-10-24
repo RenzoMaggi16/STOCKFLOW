@@ -54,7 +54,7 @@ Las rutas de negocio y las demostraciones `/demo/empleado`, `/demo/encargado`, `
 | GET | `/auth/social/:provider/callback` | Consulta `state`, `code` o `error`; 302 a `stockflow://oauth?ticket=...` o `?error=...` |
 | POST | `/auth/social/exchange` | `{ticket,verifier}`; 200, sesión o desafío 2FA |
 
-Proveedor: google/github/discord. Verificador: 43–128 caracteres URL seguros; challenge: SHA-256 del verificador en base64url sin relleno (43 caracteres). State se genera exclusivamente en backend y guarda la plataforma. El retorno web usa `WEB_APP_URL/oauth`; el nativo usa `stockflow://oauth`. Ticket dura 60 segundos y se consume una vez. Los tokens del proveedor nunca pasan a la app ni se guardan en SQL. No hay vinculación automática de cuentas por email; coincidencias con otro método dan `ACCOUNT_EXISTS`. Un proveedor sin configuración devuelve 503. Callback transforma errores en códigos de retorno sin trazas.
+Proveedor: google/github/discord. Verificador: 43–128 caracteres URL seguros; challenge: SHA-256 del verificador en base64url sin relleno (43 caracteres). State se genera exclusivamente en backend y guarda la plataforma. El retorno web usa `WEB_APP_URL/oauth`; el nativo usa `stockflow://oauth`. Ticket dura 60 segundos y se consume una vez. Los tokens del proveedor nunca pasan a la app ni se guardan en SQL. Si el email coincide con una cuenta existente, el proveedor debe confirmarlo como verificado para vincular el método; si no lo verifica, el callback devuelve `ACCOUNT_EXISTS_UNVERIFIED`. Un proveedor sin configuración devuelve 503. Callback transforma errores en códigos de retorno sin trazas.
 
 ## Catálogos
 

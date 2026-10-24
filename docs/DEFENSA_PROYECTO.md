@@ -48,7 +48,7 @@ StockFlow organiza una distribuidora: productos, clientes, pedidos de varios art
 
 **¿Cómo funciona el segundo factor?** Después de validar la contraseña, se envía un código de un solo uso al email. Tiene vencimiento y límite de intentos. Activarlo o desactivarlo también requiere código. La seguridad depende de proteger la cuenta de correo.
 
-**¿Cómo funciona el login social?** El navegador solicita autorización al proveedor, el backend valida el código y obtiene la identidad, y finalmente emite tokens propios de StockFlow. Un email coincidente no vincula automáticamente cuentas: así evitamos apropiaciones inseguras.
+**¿Cómo funciona el login social?** El navegador solicita autorización al proveedor, el backend valida el código y obtiene la identidad, y finalmente emite tokens propios de StockFlow. Si el proveedor confirma un correo que ya pertenece a una cuenta, se vincula ese método a la cuenta existente. Si no confirma el correo, la asociación se rechaza para protegerla. El segundo factor sigue vigente.
 
 **¿Qué protege SecureStore?** Los tokens persistentes en Android. No usamos AsyncStorage para guardarlos. La vista web de desarrollo mantiene sesión solo en memoria.
 

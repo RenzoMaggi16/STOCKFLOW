@@ -10,7 +10,7 @@ StockFlow necesita conexión con su API y MySQL. Para registrarse y acceder por 
 2. En Verificá tu correo pulsar Enviar código. Revisar la casilla, ingresar los seis dígitos y verificar. Código: 10 minutos, cinco intentos. Esperar 60 segundos entre envíos.
 3. Iniciar sesión con email/contraseña. Si el segundo factor está activo, ingresar el código recibido. Si se cerró esa pantalla, volver a iniciar sesión y solicitar uno nuevo tras el enfriamiento.
 4. Para Google/GitHub/Discord elegir el botón correspondiente desde web o una build Android configurada. Autorizar en el navegador y volver a StockFlow. Cancelar no crea una sesión.
-5. Si el email ya pertenece a una cuenta creada por otro método, utilizar ese método; la app no vincula cuentas automáticamente.
+5. Si el correo de Google/GitHub/Discord coincide con una cuenta existente y el proveedor lo confirma como verificado, StockFlow vincula el acceso social a esa cuenta. Si no puede verificar el correo, usá el método original para proteger la cuenta.
 6. Olvidé mi contraseña solicita un código y permite elegir una nueva contraseña. Se cierran las sesiones anteriores.
 
 La sesión se conserva de forma segura en Android. La vista web de desarrollo requiere nuevo acceso después de recargar la página.

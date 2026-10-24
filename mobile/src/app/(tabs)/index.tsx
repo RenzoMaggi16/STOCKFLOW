@@ -2,6 +2,7 @@ import { Text, View, Pressable, StyleSheet, useWindowDimensions } from "react-na
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { StockChart } from "../../components/StockChart";
+import { roleLabel } from "../../components/WorkspaceDesign";
 import { useAuth } from "../../contexts/AuthContext";
 import { useBusiness } from "../../contexts/BusinessContext";
 import { useResource } from "../../hooks/useResource";
@@ -17,7 +18,7 @@ function InventoryDashboard() {
   const total = Number(r.data?.productos || 0), shortage = Number(r.data?.stock_bajo || 0);
   const healthy = total ? Math.round((total - shortage) / total * 100) : 0;
   const refresh = () => { void r.load(); void history.load(); void low.load(); };
-  return <Page title={`Hola, ${user?.nombre.split(" ")[0]}`} subtitle={`${active?.nombre} · Tu operación, de un vistazo.`}>
+  return <Page title={`Hola, ${user?.nombre.split(" ")[0]}`} subtitle={`Tu rol: ${roleLabel(role)} · ${active?.nombre} · Tu operación, de un vistazo.`}>
     <View style={styles.row}><Text style={styles.pill}>{active?.nombre}</Text><Button title="Cambiar distribuidora" secondary onPress={() => router.push("/businesses")} /><Button title="Mi distribuidora" secondary onPress={() => router.push("/business-settings")} /></View>
     <View style={[d.hero, compact && { padding: 20, gap: 16 }]}>
       <View style={{ flex: 1, gap: 10, minWidth: 200 }}><Text style={d.eyebrow}>CENTRO DE CONTROL · {role.toUpperCase()}</Text><Text style={[d.heroTitle, compact && { fontSize: 25 }]}>Cada movimiento cuenta.</Text><Text style={d.heroCopy}>Revisá tus existencias y mantené el inventario al día.</Text></View>

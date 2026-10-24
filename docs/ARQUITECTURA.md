@@ -34,7 +34,7 @@ Se utiliza navegador del sistema con callback HTTPS al backend. El backend crea 
 
 El callback redirige a `stockflow://oauth` con un ticket efímero, nunca JWT ni token del proveedor. La app canjea el ticket con un verificador cuya huella SHA-256 envió al iniciar el flujo. Esta prueba de posesión protege el ticket ante interceptación del deep link. `state` protege la solicitud al proveedor. Ticket: 60 segundos y un solo uso; inicio OAuth: 5 minutos.
 
-La relación se identifica por `(proveedor, proveedor_usuario_id)`. Una coincidencia de email con otra cuenta se rechaza; no hay vinculación automática ni pantalla para vincular cuentas distintas en esta versión. Se debe continuar usando el método original. Si se activa segundo factor, tampoco OAuth lo evita.
+La relación se identifica por `(proveedor, proveedor_usuario_id)`. Si el correo coincide con una cuenta existente y el proveedor confirma que está verificado, se asocia el nuevo método a esa cuenta sin cambiar sus permisos. Si el proveedor no verifica el correo, se rechaza la asociación. Si se activa segundo factor, tampoco OAuth lo evita.
 
 ## Inventario y administración
 

@@ -67,7 +67,7 @@ El flujo implementado usa navegador del sistema → callback HTTPS del backend �
 
 Copiar IDs y secretos reales a GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET, GITHUB_CLIENT_ID/GITHUB_CLIENT_SECRET y DISCORD_CLIENT_ID/DISCORD_CLIENT_SECRET del backend. Google utiliza cliente web porque el canje está en servidor; esta implementación no usa SDK nativo ni SHA fingerprint Android.
 
-El backend no enlaza cuentas por email. Una cuenta ya existente debe usar su método original; no se implementó una pantalla de vinculación explícita. El correo se considera verificado solo cuando el proveedor lo confirma; en otro caso se solicita verificación local. Si no viene email, el flujo falla sin crear una identidad incompleta.
+Si el correo del proveedor coincide con una cuenta existente y el proveedor lo confirma como verificado, StockFlow vincula ese método social y permite iniciar sesión en la cuenta existente, conservando sus datos y permisos. Si el proveedor no confirma el correo, la vinculación se rechaza para proteger la cuenta. Si no viene email, el flujo falla sin crear una identidad incompleta.
 
 Fuentes oficiales consultadas: [Expo OAuth](https://docs.expo.dev/guides/authentication/), [Google Web Server OAuth](https://developers.google.com/identity/protocols/oauth2/web-server), [Google UserInfo](https://developers.google.com/identity/openid-connect/reference), [GitHub OAuth](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps). La documentación de Meta devolvió 429 durante esta revisión; revisar su [flujo manual](https://developers.facebook.com/docs/facebook-login/guides/advanced/manual-flow/) al configurar credenciales.
 
