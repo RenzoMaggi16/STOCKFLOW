@@ -25,7 +25,6 @@ import { useColors, ThemeToggleButton } from "../components/ui";
 const SOCIAL_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   google: "logo-google",
   github: "logo-github",
-  facebook: "logo-facebook",
   discord: "logo-discord",
 };
 
@@ -645,7 +644,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "recover" }) {
                   </View>
 
                   <View style={styles.socialRow}>
-                    {(["google", "github", "facebook"] as const).map((p) => (
+                    {(["google", "github", "discord"] as const).map((p) => (
                       <Pressable
                         key={p}
                         accessibilityRole="button"
@@ -666,7 +665,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "recover" }) {
                           color={p === "google" ? c.red : c.dark}
                         />
                         <Text style={[styles.socialText, { color: c.dark }]}>
-                          {p === "google" ? "Google" : p === "github" ? "GitHub" : "Facebook"}
+                          {p === "google" ? "Google" : p === "github" ? "GitHub" : "Discord"}
                         </Text>
                       </Pressable>
                     ))}
