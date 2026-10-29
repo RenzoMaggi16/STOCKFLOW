@@ -73,3 +73,13 @@ erDiagram
 ## Límites operativos
 
 Aplicación multinegocio con aislamiento SQL y permisos por membresía. Rate limit en memoria: para varias réplicas requiere almacén compartido. Debe configurarse proxy/HTTPS y respaldos antes de producción. Las tablas de códigos/sesiones y flujos OAuth necesitan una política de limpieza de registros expirados, conservando el tiempo de detección de reutilización acordado. No se probó carga productiva.
+
+
+## Especialización y presentación
+Se conserva negocio_id como clave interna de aislamiento. No se reemplazan transacciones ni relaciones de inventario por otro modelo. 009_carton.sql amplía productos/clientes con columnas e índice; categorías permanece como relación histórica e interna.
+
+La API calcula el dashboard en reports.service.ts, con alcance por distribuidora, vendedor o repartidor. El stock se reserva al preparar y se consume transaccionalmente al entregar, con usuario/fecha en movimientos y pedido_estados. Los endpoints exclusivos siguen protegidos por authorize y lockAccess.
+
+React Native usa theme/palette.ts y useStyles/useColors para estilos reactivos. ThemeContext persiste la preferencia y resuelve el esquema del sistema. BoxDashboard consume /dashboard. Expo Router reutiliza las pantallas existentes; Más agrupa rutas secundarias sin duplicar módulos.
+
+DeliveryMap.tsx implementa Google Maps en Android; DeliveryMap.web.tsx muestra la alternativa de lista/navegación. expo-location solicita solo permiso foreground. La geocodificación se consulta al backend y devuelve candidatos sin mutar clientes. No hay seguimiento en segundo plano ni navegación giro a giro interna.

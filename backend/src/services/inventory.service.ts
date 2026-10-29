@@ -30,6 +30,12 @@ export async function save(
     await lockAccess(conn, actor, entity === "products" && !id && Number(data.stock_inicial ?? 0) > 0 ? ["encargado"] : ["admin", "encargado"]);
     if (id) await repo.getActive(conn, entity, id, actor.businessId);
     if (entity === "products") {
+      if (!id && data.categoria_id === undefined) {
+        await conn.execute("INSERT INTO categorias(nombre,descripcion,negocio_id) VALUES('Cajas de cartón','Clasificación interna del catálogo',?) ON DUPLICATE KEY UPDATE id=id", [actor.businessId]);
+        const [categories] = await conn.execute<RowDataPacket[]>("SELECT id FROM categorias WHERE nombre='Cajas de cartón' AND negocio_id=? AND activo=1", [actor.businessId]);
+        if (!categories[0]) throw new HttpError(409,"La categoría interna está inactiva","INACTIVE_CATEGORY");
+        data = { ...data, categoria_id: categories[0].id };
+      }
       if (data.categoria_id !== undefined)
         await repo.getActive(conn, "categories", Number(data.categoria_id), actor.businessId);
       if (data.proveedor_id != null)
@@ -81,6 +87,9 @@ export async function list(
     page: number;
     limit: number;
     q?: string;
+    search?: string;
+    size?: string;
+    type?: string;
     stock?: string;
     categoria_id?: number;
     proveedor_id?: number;
@@ -88,15 +97,16 @@ export async function list(
 ) {
   const conditions = ["activo=1", "negocio_id=?"];
   const values: (string | number)[] = [businessId];
-  if (query.q) {
+  const search = query.search ?? query.q;
+  if (search) {
     conditions.push(
       entity === "products" ? "(nombre LIKE ? OR sku LIKE ?)" : "nombre LIKE ?",
     );
-    values.push(`%${query.q}%`);
-    if (entity === "products") values.push(`%${query.q}%`);
+    values.push(`%${search}%`);
+    if (entity === "products") values.push(`%${search}%`);
   }
   if (entity === "products")
-    for (const field of ["categoria_id", "proveedor_id"] as const)
+    for (const field of ["categoria_id", "proveedor_id", "size", "type"] as const)
       if (query[field]) {
         conditions.push(`${field}=?`);
         values.push(query[field]);
@@ -110,8 +120,9 @@ export async function list(
           : "stock<=stock_minimo",
     );
   const where = conditions.join(" AND ");
+  const selection = entity === "products" ? "*, stock - (SELECT COALESCE(SUM(r.cantidad),0) FROM reservas_pedido r WHERE r.producto_id=productos.id AND r.negocio_id=productos.negocio_id AND r.estado='activa') AS stock_disponible" : "*";
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT * FROM ${repo.tables[entity]} WHERE ${where} ORDER BY id DESC LIMIT ? OFFSET ?`,
+    `SELECT ${selection} FROM ${repo.tables[entity]} WHERE ${where} ORDER BY id DESC LIMIT ? OFFSET ?`,
     [...values, query.limit, (query.page - 1) * query.limit],
   );
   const [count] = await pool.execute<RowDataPacket[]>(

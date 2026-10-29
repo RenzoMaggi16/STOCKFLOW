@@ -2,10 +2,12 @@ import { Text, View } from "react-native";
 import { router } from "expo-router";
 import { useBusiness } from "../../contexts/BusinessContext";
 import { useResource } from "../../hooks/useResource";
-import { Button, Card, Page, Status, styles } from "../../components/ui";
+import { Button, Card, Page, Status, useStyles } from "../../components/ui";
 
 const labels:Record<string,string>={pendiente:"Pendiente",en_preparacion:"En preparación",preparado:"Preparado",en_reparto:"En reparto",entregado:"Entregado",entrega_fallida:"Entrega fallida",cancelado:"Cancelado",devuelto:"Devuelto"};
 export default function Orders(){
+  const styles = useStyles();
+
   const {role}=useBusiness(),resource=useResource<any[]>(role==="repartidor"?"/deliveries":"/orders");
   return <Page title={role==="repartidor"?"Mis entregas":"Pedidos"} subtitle={role==="repartidor"?"Solo aparecen los pedidos asignados a vos.":"Ventas, preparación y entregas en un mismo lugar."}>
     <Card><Text style={styles.label}>Flujo de distribución</Text><Text style={styles.subtitle}>Ventas registra el pedido, depósito reserva y prepara, y el repartidor confirma la entrega.</Text><View style={styles.row}>{role==="empleado"&&<Button title="Nuevo pedido" onPress={()=>router.push("/orders/create")}/>}<Button title="Actualizar" secondary onPress={()=>void resource.load()}/></View></Card>

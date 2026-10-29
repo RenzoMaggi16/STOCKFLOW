@@ -13,69 +13,78 @@ import {
   StyleSheet,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-export const colors = {
-  green: "#087F5B",
-  dark: "#103B30",
-  bg: "#F3F7F5",
-  muted: "#62776E",
-  border: "#D8E5DE",
-  red: "#B42318",
-};
-export const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.bg },
-  body: {
-    padding: 20,
-    gap: 16,
-    width: "100%",
-    maxWidth: 1000,
-    alignSelf: "center",
-  },
-  title: { fontSize: 28, fontWeight: "800", color: colors.dark },
-  subtitle: { fontSize: 14, color: colors.muted, lineHeight: 22 },
-  card: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: 10,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  input: {
-    backgroundColor: "white",
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: 14,
-    minHeight: 50,
-    fontSize: 16,
-    color: colors.dark,
-  },
-  label: { fontSize: 14, fontWeight: "600", color: colors.dark },
-  button: {
-    backgroundColor: colors.green,
-    borderRadius: 12,
-    minHeight: 48,
-    paddingHorizontal: 18,
-    paddingVertical: 13,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  error: { color: colors.red, lineHeight: 22 },
-  pill: {
-    backgroundColor: "#E1F3EA",
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    color: colors.green,
-    fontWeight: "600",
-  },
-});
+import { useTheme, type Theme } from "../contexts/ThemeContext";
+
+import {palette} from '../theme/palette';
+export function getThemeColors(theme: Theme) { return palette(theme); }
+
+export function useColors() {
+  const { theme } = useTheme();
+  return getThemeColors(theme);
+}
+
+export function useStyles() {
+  const c = useColors();
+  return StyleSheet.create({
+    page: { flex: 1, backgroundColor: c.bg },
+    body: {
+      padding: 20,
+      gap: 16,
+      width: "100%",
+      maxWidth: 1000,
+      alignSelf: "center",
+    },
+    title: { fontSize: 28, fontWeight: "800", color: c.dark },
+    subtitle: { fontSize: 14, color: c.muted, lineHeight: 22 },
+    card: {
+      backgroundColor: c.card,
+      padding: 20,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: c.border,
+      gap: 10,
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 10,
+    },
+    input: {
+      backgroundColor: c.inputBg,
+      borderWidth: 1,
+      borderColor: c.border,
+      borderRadius: 12,
+      padding: 14,
+      minHeight: 50,
+      fontSize: 16,
+      color: c.dark,
+    },
+    label: { fontSize: 14, fontWeight: "600", color: c.dark },
+    button: {
+      backgroundColor: c.green,
+      borderRadius: 12,
+      minHeight: 48,
+      paddingHorizontal: 18,
+      paddingVertical: 13,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    error: { color: c.red, lineHeight: 22 },
+    pill: {
+      backgroundColor: c.pill,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 20,
+      color: c.pillText,
+      fontWeight: "600",
+      borderWidth: 1,
+      borderColor: c.border,
+      overflow: "hidden",
+    },
+  });
+}
+
 export function Page({
   title,
   subtitle,
@@ -85,20 +94,39 @@ export function Page({
   subtitle?: string;
   children: React.ReactNode;
 }) {
+  const c = useColors();
   return (
-    <SafeAreaView edges={["left", "right", "bottom"]} style={styles.page}>
+    <SafeAreaView edges={["left", "right", "bottom"]} style={{ flex: 1, backgroundColor: c.bg }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.body}
+          contentContainerStyle={{
+            padding: 20,
+            gap: 16,
+            width: "100%",
+            maxWidth: 1000,
+            alignSelf: "center",
+          }}
         >
-          <View style={{gap:8,marginBottom:4}}><View style={{height:4,width:32,borderRadius:4,backgroundColor:colors.green,marginBottom:4}}/><Text accessibilityRole="header" style={styles.title}>
-            {title}
-          </Text>
-          {!!subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+          <View style={{ gap: 8, marginBottom: 4 }}>
+            <View
+              style={{
+                height: 4,
+                width: 32,
+                borderRadius: 4,
+                backgroundColor: c.green,
+                marginBottom: 4,
+              }}
+            />
+            <Text accessibilityRole="header" style={{ fontSize: 28, fontWeight: "800", color: c.dark }}>
+              {title}
+            </Text>
+            {!!subtitle && (
+              <Text style={{ fontSize: 14, color: c.muted, lineHeight: 22 }}>{subtitle}</Text>
+            )}
           </View>
           {children}
         </ScrollView>
@@ -106,9 +134,25 @@ export function Page({
     </SafeAreaView>
   );
 }
-export const Card = ({ children }: { children: React.ReactNode }) => (
-  <View style={styles.card}>{children}</View>
-);
+
+export function Card({ children }: { children: React.ReactNode }) {
+  const c = useColors();
+  return (
+    <View
+      style={{
+        backgroundColor: c.card,
+        padding: 20,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: c.border,
+        gap: 10,
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
 export function Button({
   title,
   onPress,
@@ -122,24 +166,37 @@ export function Button({
   secondary?: boolean;
   danger?: boolean;
 }) {
+  const c = useColors();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={title}
       disabled={disabled}
       onPress={onPress}
-      style={[
-        styles.button,
-        secondary && { backgroundColor: "#E1F3EA" },
-        danger && { backgroundColor: colors.red },
-        disabled && { opacity: 0.45 },
+      style={({ pressed }) => [
+        {
+          backgroundColor: secondary
+            ? c.secondaryBtn
+            : danger
+              ? c.red
+              : pressed ? c.pressed : c.green,
+          borderRadius: 12,
+          minHeight: 48,
+          paddingHorizontal: 18,
+          paddingVertical: 13,
+          alignItems: "center",
+          justifyContent: "center",
+          borderWidth: secondary ? 1 : 0,
+          borderColor: secondary ? c.border : "transparent",
+          opacity: disabled ? 0.45 : pressed ? 0.85 : 1,
+        },
       ]}
     >
       <Text
         style={{
           fontWeight: "700",
           fontSize: 15,
-          color: secondary ? colors.green : "white",
+          color: secondary ? c.secondaryBtnText : danger ? c.bg : c.onPrimary,
         }}
       >
         {title}
@@ -147,6 +204,7 @@ export function Button({
     </Pressable>
   );
 }
+
 export function Input({
   label,
   value,
@@ -167,32 +225,65 @@ export function Input({
   disabled?: boolean;
 }) {
   const [revealed, setRevealed] = useState(false);
+  const c = useColors();
   return (
     <View style={{ gap: 6 }}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={{ fontSize: 14, fontWeight: "600", color: c.dark }}>{label}</Text>
       <View style={{ position: "relative" }}>
-      <TextInput
-        accessibilityLabel={label}
-        style={[styles.input, secure && { paddingRight: 85 }]}
-        value={value}
-        onChangeText={onChange}
-        secureTextEntry={secure && !revealed}
-        autoCapitalize="none"
-        keyboardType={numeric ? "decimal-pad" : "default"}
-        multiline={multiline}
-        editable={!disabled}
-        onSubmitEditing={onSubmit}
-        returnKeyType={onSubmit ? "done" : undefined}
-      />
-      {secure && <Pressable accessibilityRole="button" accessibilityLabel={revealed ? "Ocultar contraseña" : "Mostrar contraseña"} onPress={() => setRevealed(!revealed)} style={{ position: "absolute", right: 8, top: 4, minHeight: 44, justifyContent: "center", paddingHorizontal: 8 }}><Text style={{color: colors.green, fontWeight: "600"}}>{revealed ? "Ocultar" : "Mostrar"}</Text></Pressable>}
+        <TextInput
+          accessibilityLabel={label}
+          style={[
+            {
+              backgroundColor: c.inputBg,
+              borderWidth: 1,
+              borderColor: c.border,
+              borderRadius: 12,
+              padding: 14,
+              minHeight: 50,
+              fontSize: 16,
+              color: c.dark,
+            },
+            secure && { paddingRight: 85 },
+          ]}
+          value={value}
+          onChangeText={onChange}
+          secureTextEntry={secure && !revealed}
+          autoCapitalize="none"
+          keyboardType={numeric ? "decimal-pad" : "default"}
+          multiline={multiline}
+          editable={!disabled}
+          onSubmitEditing={onSubmit}
+          returnKeyType={onSubmit ? "done" : undefined}
+          placeholderTextColor={c.muted}
+        />
+        {secure && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={revealed ? "Ocultar contraseña" : "Mostrar contraseña"}
+            onPress={() => setRevealed(!revealed)}
+            style={{
+              position: "absolute",
+              right: 8,
+              top: 4,
+              minHeight: 44,
+              justifyContent: "center",
+              paddingHorizontal: 8,
+            }}
+          >
+            <Text style={{ color: c.green, fontWeight: "600" }}>
+              {revealed ? "Ocultar" : "Mostrar"}
+            </Text>
+          </Pressable>
+        )}
       </View>
     </View>
   );
 }
+
 export function Status({
-  loading,
-  error,
-  empty,
+  loading = false,
+  error = "",
+  empty = false,
   retry,
 }: {
   loading?: boolean;
@@ -200,29 +291,46 @@ export function Status({
   empty?: boolean;
   retry?: () => void;
 }) {
-  return (
-    <>
-      {loading && <ActivityIndicator size="large" color={colors.green} />}
-      {!!error && (
-        <Card>
-          <Text accessibilityRole="alert" style={styles.error}>
-            {error}
-          </Text>
-          {retry && <Button title="Reintentar" onPress={retry} secondary />}
-        </Card>
-      )}
-      {!loading && !error && empty && (
-        <Card>
-          <View style={{padding:12,alignItems:"center",gap:10}}><Ionicons name="file-tray-outline" size={34} color={colors.green}/><Text style={styles.label}>Todo listo para empezar</Text>
-          <Text style={styles.subtitle}>
-            Todavía no hay registros para mostrar.
-          </Text>
-          </View>
-        </Card>
-      )}
-    </>
-  );
+  const c = useColors();
+  if (loading)
+    return (
+      <View style={{ padding: 20, alignItems: "center", gap: 10 }}>
+        <View accessible={false} style={{height:14,width:"90%",backgroundColor:c.border,borderRadius:7}}/>
+        <View accessible={false} style={{height:14,width:"65%",backgroundColor:c.border,borderRadius:7}}/>
+        <ActivityIndicator size="small" color={c.green} />
+        <Text style={{ color: c.muted, fontSize: 13 }}>Cargando datos…</Text>
+      </View>
+    );
+  if (error)
+    return (
+      <View
+        style={{
+          padding: 16,
+          backgroundColor: c.card,
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: c.red,
+          gap: 8,
+        }}
+      >
+        <Text style={{ color: c.red, fontWeight: "600", fontSize: 14 }}>{error}</Text>
+        {!!retry && (
+          <Pressable onPress={retry}>
+            <Text style={{ color: c.green, fontWeight: "700", fontSize: 13 }}>Reintentar</Text>
+          </Pressable>
+        )}
+      </View>
+    );
+  if (empty)
+    return (
+      <View style={{ padding: 24, alignItems: "center", gap: 8 }}>
+        <Ionicons name="file-tray-outline" size={32} color={c.muted} />
+        <Text style={{ color: c.muted, fontSize: 14 }}>No hay elementos para mostrar.</Text>
+      </View>
+    );
+  return null;
 }
+
 export function Sheet({
   visible,
   title,
@@ -234,20 +342,33 @@ export function Sheet({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const c = useColors();
   if (!visible) return null;
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={["top"]}>
         <Page title={title}>
-          <View style={{alignItems:"flex-start"}}><Button title="Volver" secondary onPress={onClose} /></View>
-          <View style={{backgroundColor:"white",padding:20,borderRadius:20,borderWidth:1,borderColor:colors.border,gap:16}}>
-          {children}
+          <View style={{ alignItems: "flex-start" }}>
+            <Button title="Volver" secondary onPress={onClose} />
+          </View>
+          <View
+            style={{
+              backgroundColor: c.card,
+              padding: 20,
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: c.border,
+              gap: 16,
+            }}
+          >
+            {children}
           </View>
         </Page>
       </SafeAreaView>
     </Modal>
   );
 }
+
 export function Confirm({
   title,
   message,
@@ -262,6 +383,7 @@ export function Confirm({
   const [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const c = useColors();
   return (
     <>
       <Button title={title} danger={danger} onPress={() => setOpen(true)} />
@@ -270,11 +392,12 @@ export function Confirm({
         visible={open}
         onClose={() => !busy && setOpen(false)}
       >
-        <Text style={styles.subtitle}>{message}</Text>
+        <Text style={{ color: c.muted, fontSize: 14, lineHeight: 22 }}>{message}</Text>
         <Status error={error} />
         <Button
           title={busy ? "Procesando…" : "Confirmar"}
           disabled={busy}
+          danger={danger}
           onPress={() => {
             setBusy(true);
             setError("");
@@ -288,6 +411,7 @@ export function Confirm({
     </>
   );
 }
+
 export function Choices({
   value,
   options,
@@ -298,7 +422,7 @@ export function Choices({
   onChange: (v: string) => void;
 }) {
   return (
-    <View style={styles.row}>
+    <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
       {options.map((o) => (
         <Button
           key={o.value}
@@ -310,36 +434,83 @@ export function Choices({
     </View>
   );
 }
+
 export function Pager({
   page,
   total,
+  limit = 20,
   onChange,
 }: {
   page: number;
   total: number;
+  limit?: number;
   onChange: (p: number) => void;
 }) {
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const c = useColors();
+  if (totalPages <= 1) return null;
   return (
-    <View style={styles.row}>
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>
       <Button
         title="Anterior"
         secondary
         disabled={page <= 1}
         onPress={() => onChange(page - 1)}
       />
-      <Text>
-        Página {page} · {total} registros
+      <Text style={{ color: c.muted, fontSize: 13, fontWeight: "600" }}>
+        Página {page} de {totalPages}
       </Text>
       <Button
         title="Siguiente"
         secondary
-        disabled={page * 20 >= total}
+        disabled={page >= totalPages}
         onPress={() => onChange(page + 1)}
       />
     </View>
   );
 }
+
 export const money = (v: unknown) =>
   new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(
     Number(v || 0),
   );
+
+/** Toggle button between light and dark mode in settings/profile */
+export function ThemeToggle() {
+  const {preference,setTheme}=useTheme();
+  return <Choices value={preference} onChange={v=>setTheme(v as 'light'|'dark'|'system')} options={[{value:'light',label:'Claro'},{value:'dark',label:'Oscuro'},{value:'system',label:'Automático'}]}/>;
+}
+
+/** Compact theme toggle pill for headers and navigation bars */
+export function ThemeToggleButton() {
+  const { isDark, toggle } = useTheme();
+  const c = useColors();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+      onPress={toggle}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 7,
+        backgroundColor: c.card,
+        borderWidth: 1,
+        borderColor: c.border,
+        borderRadius: 20,
+        paddingHorizontal: 13,
+        paddingVertical: 7,
+        opacity: pressed ? 0.75 : 1,
+      })}
+    >
+      <Ionicons
+        name={isDark ? "sunny" : "moon"}
+        size={15}
+        color={c.green}
+      />
+      <Text style={{ color: c.dark, fontWeight: "700", fontSize: 13 }}>
+        {isDark ? "Modo claro" : "Modo oscuro"}
+      </Text>
+    </Pressable>
+  );
+}

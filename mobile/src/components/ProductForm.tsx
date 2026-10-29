@@ -1,7 +1,7 @@
 import { EntityForm, type Field } from "./EntityForm";
 import { api } from "../services/api";
 import { Text } from "react-native";
-import { Card, styles, money } from "./ui";
+import { Card, useStyles, money } from "./ui";
 import { useBusiness } from "../contexts/BusinessContext";
 const fields: Field[] = [
   { name: "nombre", label: "Nombre", required: true, section:"Identidad del producto" },
@@ -14,7 +14,7 @@ const fields: Field[] = [
   },
   {
     name: "precio",
-    label: "Precio de venta por unidad",
+    label: "Precio de distribución por unidad",
     required: true,
     numeric: true,
     validate: (v) =>
@@ -29,19 +29,10 @@ const fields: Field[] = [
     numeric: true,
     validate: (v) => /^\d+$/.test(v) || "Ingresá un entero no negativo",
   },
-  {
-    name: "categoria_id",
-    label: "Categoría",
-    required: true,
-    resource: "/categories",
-    allowCreate: true,
-  },
-  {
-    name: "proveedor_id",
-    label: "Proveedor (opcional)",
-    resource: "/suppliers",
-    allowCreate: true,
-  },
+  {name:'size',label:'Tamaño',required:true,options:[{value:'chica',label:'Chica'},{value:'mediana',label:'Mediana'},{value:'grande',label:'Grande'}]},
+  {name:'type',label:'Tipo',required:true,options:[{value:'estandar',label:'Estándar'},{value:'reforzada',label:'Reforzada'}]},
+  {name:'dimensiones',label:'Dimensiones (opcional)',hint:'Información descriptiva, por ejemplo 20 × 20 × 20 cm.'},
+  {name:'imagen_url',label:'Imagen HTTPS (opcional)',validate:v=>!v || /^https:\/\//.test(v) || 'Usá una URL HTTPS'},
 ];
 export function ProductForm({
   initial,
@@ -50,6 +41,8 @@ export function ProductForm({
   initial?: any;
   onSaved: () => void;
 }) {
+  const styles = useStyles();
+
   const {role}=useBusiness();
   return (
     <EntityForm
@@ -58,7 +51,7 @@ export function ProductForm({
       preview={v=>{
         if(!v.costo_compra || !v.precio || !/^\d{1,10}(\.\d{1,2})?$/.test(v.costo_compra) || !/^\d{1,10}(\.\d{1,2})?$/.test(v.precio)) return null;
         const cost=Math.round(Number(v.costo_compra)*100), sale=Math.round(Number(v.precio)*100), difference=sale-cost;
-        return <Card><Text style={styles.label}>Diferencia por unidad</Text><Text style={[styles.title,difference<0 && {color:"#B42318"}]}>{money(difference/100)}</Text><Text style={styles.subtitle}>{sale>0 ? `Margen sobre venta: ${(difference/sale*100).toFixed(1)}%. ` : "Margen porcentual no calculable con venta cero. "}Estimación antes de impuestos y otros gastos; no es ganancia realizada.</Text>{difference<0 && <Text style={styles.error}>El precio de venta está por debajo del costo de compra.</Text>}</Card>;
+        return <Card><Text style={styles.label}>Diferencia por unidad</Text><Text style={[styles.title,difference<0 && styles.error]}>{money(difference/100)}</Text><Text style={styles.subtitle}>{sale>0 ? `Margen sobre venta: ${(difference/sale*100).toFixed(1)}%. ` : "Margen porcentual no calculable con venta cero. "}Estimación antes de impuestos y otros gastos; no es ganancia realizada.</Text>{difference<0 && <Text style={styles.error}>El precio de venta está por debajo del costo de compra.</Text>}</Card>;
       }}
       onSubmit={async (v) => {
         const body = {
@@ -66,8 +59,7 @@ export function ProductForm({
           ...(!initial ? {stock_inicial:role==="encargado"?Number(v.stock_inicial):0} : {}),
           costo_compra: v.costo_compra || null,
           stock_minimo: Number(v.stock_minimo),
-          categoria_id: Number(v.categoria_id),
-          proveedor_id: v.proveedor_id ? Number(v.proveedor_id) : null,
+          imagen_url: v.imagen_url || null,
         };
         if (initial) await api.patch(`/products/${initial.id}`, body);
         else await api.post("/products", body);

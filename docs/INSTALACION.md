@@ -121,3 +121,15 @@ Si Brevo devuelve `525 Unauthorized IP address`, revisar el correo de seguridad 
 ## Retorno social en navegador
 
 Configurar `WEB_APP_URL=http://localhost:8081` localmente, o el origen HTTPS exacto del frontend publicado. Aplicar migración 004. Los callbacks registrados en Google/GitHub/Discord siguen apuntando al backend `/api/auth/social/PROVEEDOR/callback`; el backend redirige después a `/oauth` del frontend o al esquema nativo según la plataforma que inició la solicitud. No intercambiar localhost y 127.0.0.1 en el frontend durante el flujo: el verificador temporal pertenece al origen y pestaña que inició el acceso.
+
+
+## Actualización para cajas de cartón
+1. Respaldar MySQL. Ejecutar `npm --prefix backend run migrate` con las variables de backend (el comando debe leer su .env desde backend; alternativa: cd backend y npm run migrate). La migración 009 no elimina tablas ni clasifica arbitrariamente productos históricos. MySQL hace commits implícitos de DDL: ante ejecución parcial revisar columnas antes de reintentar.
+2. Crear distribuidora y un encargado activo. Desde backend, configurar SEED_BUSINESS_ID y SEED_USER_ID y ejecutar `npm run seed`. Agrega 12 productos DEMO y movimientos auditados; no sobrescribe SKU existentes. No ejecutar en una distribuidora real sin querer incorporar datos demo.
+3. Para geocodificar: GEOCODING_URL debe ser un endpoint HTTPS compatible con Nominatim search y autorizado para ese uso; GEOCODING_API_KEY se envía como Bearer si existe. Vacío permite usar coordenadas manuales.
+4. Android usa Leaflet/OpenStreetMap en WebView, sin clave. Ubicación solo en primer plano. Ver CONFIGURAR_APK.md.
+5. EXPO_PUBLIC_API_URL debe apuntar a una API HTTPS accesible (incluyendo /api). EAS preview/production rechaza localhost y emulador. Configurar también EAS_PROJECT_ID si se usa otro proyecto.
+6. Desde mobile: `npx eas-cli@latest build --platform android --profile preview`. El perfil genera APK; el SDK nativo requiere un nuevo build después de agregar mapas. Probar en dispositivo permisos concedidos/denegados, ubicación, marcadores, navegación, retiro y resultado.
+7. Facebook requiere FACEBOOK_CLIENT_ID, FACEBOOK_CLIENT_SECRET y FACEBOOK_GRAPH_VERSION. Registrar el callback PUBLIC_API_URL/api/auth/social/facebook/callback en Meta; mantener stockflow://oauth para el retorno a Android. Google/GitHub siguen usando sus credenciales existentes.
+
+Pruebas de integración: servidor de pruebas separado, TEST_DB_PORT (3307 por defecto), TEST_DB_USER y TEST_DB_PASSWORD. Las suites crean y eliminan únicamente bases stockflow_test_*. No usan la base productiva.

@@ -11,17 +11,17 @@ import {
   Input,
   Button,
   Status,
-  styles,
+  useStyles, useColors,
   money,
 } from "../components/ui";
 export default function Reports() {
+  const styles = useStyles(), c=useColors();
+
   const [desde, setDesde] = useState(""),
     [hasta, setHasta] = useState(""),
     [query, setQuery] = useState("");
-  const [category, setCategory] = useState(""),
-    [product, setProduct] = useState("");
+  const [product, setProduct] = useState("");
   const catalogQuery = new URLSearchParams({
-    ...(category && { categoria_id: category }),
     ...(product && { producto_id: product }),
   }).toString();
   const totals = useResource("/reports/stock-value?" + catalogQuery),
@@ -43,14 +43,8 @@ export default function Reports() {
         title="Reportes"
         subtitle="Métricas calculadas sobre tu inventario real"
       >
-        <IdentityBanner title="Convertí tus datos en decisiones." subtitle="Revisá el valor de venta de tus existencias y la actividad de tu inventario." badge="REPORTES DEL NEGOCIO" icon="bar-chart-outline"/>
+        <IdentityBanner title="Convertí tus datos en decisiones." subtitle="Revisá el valor de venta de tus existencias y la actividad de tu inventario." badge="REPORTES DE CAJAS" icon="bar-chart-outline"/>
         <Card><SectionHeading title="Elegí qué analizar" icon="options-outline"/>
-        <ResourceSelect
-          resource="/categories"
-          label="Filtrar categoría"
-          value={category}
-          onChange={setCategory}
-        />
         <ResourceSelect
           resource="/products"
           label="Filtrar producto"
@@ -99,7 +93,7 @@ export default function Reports() {
             viewBox="0 0 360 130"
             accessibilityLabel={`Entradas ${incoming}, salidas ${outgoing}`}
           >
-            <SvgText x={0} y={20} fill="#103B30">
+            <SvgText x={0} y={20} fill={c.dark}>
               Entradas: {incoming}
             </SvgText>
             <Rect
@@ -107,10 +101,10 @@ export default function Reports() {
               y={30}
               height={22}
               width={(330 * incoming) / max}
-              fill="#087F5B"
+              fill={c.green}
               rx={6}
             />
-            <SvgText x={0} y={83} fill="#103B30">
+            <SvgText x={0} y={83} fill={c.dark}>
               Salidas: {outgoing}
             </SvgText>
             <Rect
@@ -118,24 +112,15 @@ export default function Reports() {
               y={94}
               height={22}
               width={(330 * outgoing) / max}
-              fill="#E9AA44"
+              fill={c.warning}
               rx={6}
             />
           </Svg>
         </Card>
-        <Text style={[styles.title, { fontSize: 20 }]}>Por categoría</Text>
-        {totals.data?.categorias.map((c: any) => (
-          <Card key={c.id}>
-            <Text style={styles.label}>{c.nombre}</Text>
-            <Text style={styles.subtitle}>
-              {c.productos} productos · {c.unidades} unidades · {money(c.valor)}
-            </Text>
-          </Card>
-        ))}
         <Text style={[styles.title, { fontSize: 20 }]}>Mayor movimiento</Text>
         {moves.data?.productos.map((p: any) => (
           <Card key={p.id}>
-            <Text>
+            <Text style={styles.subtitle}>
               {p.nombre} · {p.operaciones} operaciones
             </Text>
           </Card>
@@ -152,7 +137,7 @@ export default function Reports() {
         {low.data?.items.map((p: any) => (
           <Card key={p.id}>
             <Text style={styles.label}>{p.nombre}</Text>
-            <Text>
+            <Text style={styles.subtitle}>
               Actual {p.stock} · Mínimo {p.stock_minimo}
             </Text>
           </Card>

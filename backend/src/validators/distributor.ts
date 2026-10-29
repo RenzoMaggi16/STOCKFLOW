@@ -8,6 +8,10 @@ export const clientSchema = z.object({
   email: z.email().max(150).nullable().optional(),
   telefono: z.string().trim().max(50).nullable().optional(),
   direccion_entrega: z.string().trim().min(3).max(300),
+  localidad: z.string().trim().max(150).nullable().optional(),
+  provincia: z.string().trim().max(150).nullable().optional(),
+  latitud: z.number().min(-90).max(90).nullable().optional(),
+  longitud: z.number().min(-180).max(180).nullable().optional(),
   observaciones: note,
 }).strict();
 export const orderSchema = z.object({

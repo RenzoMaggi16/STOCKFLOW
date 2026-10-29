@@ -15,11 +15,13 @@ import {
   Sheet,
   Status,
   Pager,
-  styles,
+  useStyles,
 } from "../components/ui";
 import { EntityForm, type Field } from "../components/EntityForm";
 import { Guard } from "../components/Guard";
 export function Catalog({ entity }: { entity: "categories" | "suppliers" }) {
+  const styles = useStyles();
+
   const { role } = useBusiness();
   const [q, setQ] = useState(""),
     [page, setPage] = useState(1),
@@ -38,7 +40,7 @@ export function Catalog({ entity }: { entity: "categories" | "suppliers" }) {
   return (
     <Guard>
       <Page title={entity === "categories" ? "Categorías" : "Proveedores"}>
-        <IdentityBanner title={entity === "categories" ? "Cada producto en su lugar." : "Las personas detrás de tu stock."} subtitle={entity === "categories" ? "Organizá tu catálogo para encontrar lo que necesitás más rápido." : "Mantené los datos de contacto y sus productos siempre a mano."} badge="ORGANIZÁ TU NEGOCIO" icon={entity === "categories" ? "grid-outline" : "car-outline"}/>
+        <IdentityBanner title={entity === "categories" ? "Cada producto en su lugar." : "Las personas detrás de tu stock."} subtitle={entity === "categories" ? "Organizá tu catálogo para encontrar lo que necesitás más rápido." : "Mantené los datos de contacto y sus productos siempre a mano."} badge="ORGANIZÁ TU DISTRIBUIDORA" icon={entity === "categories" ? "grid-outline" : "car-outline"}/>
         <Card><SectionHeading title="Explorá tu catálogo" icon="search-outline"/>
         <Input
           label="Buscar"

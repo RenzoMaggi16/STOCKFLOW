@@ -18,7 +18,7 @@ test('Multinegocio: migración, invitaciones, aislamiento y permisos', async t =
   let server,pool;
   try {
     await db.query(`CREATE DATABASE ${name}`);await db.query(`USE ${name}`);
-    await db.query((await fs.readFile(path.join(__dirname,'../../database/schema.sql'),'utf8')).replace(/^CREATE DATABASE.*\nUSE stockflow;\n/,''));
+    await db.query((await fs.readFile(path.join(__dirname,'../../database/schema.sql'),'utf8')).replace(/^CREATE DATABASE[^\r\n]*\r?\nUSE stockflow;\r?\n/,''));
     await db.query(await fs.readFile(path.join(__dirname,'../../database/migrations/001_inventory.sql'),'utf8'));
     await db.query("CREATE TABLE schema_migrations(nombre VARCHAR(255) PRIMARY KEY,aplicado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP); INSERT INTO schema_migrations(nombre) VALUES('001_inventory.sql')");
     await db.query("INSERT INTO categorias(nombre) VALUES('Histórica'); INSERT INTO productos(nombre,sku,precio,categoria_id,stock) VALUES('Conservado','LEGACY','12.00',1,9)");

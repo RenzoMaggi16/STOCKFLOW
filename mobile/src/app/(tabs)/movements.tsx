@@ -15,10 +15,12 @@ import {
   Sheet,
   Status,
   Pager,
-  styles,
+  useStyles,
 } from "../../components/ui";
 import { EntityForm } from "../../components/EntityForm";
 export default function Movements() {
+  const styles = useStyles();
+
   const { role } = useBusiness();
   const params = useLocalSearchParams();
   const [open, setOpen] = useState(false),
@@ -58,7 +60,7 @@ export default function Movements() {
           <Text style={styles.subtitle}>
             {m.usuario} · {new Date(m.creado_en).toLocaleString("es-AR")}
           </Text>
-          <Text>{m.motivo}</Text>
+          <Text style={styles.subtitle}>{m.motivo}</Text>
         </Card>
       ))}
       <Pager page={page} total={r.data?.total || 0} onChange={setPage} />

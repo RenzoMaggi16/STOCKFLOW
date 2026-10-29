@@ -5,9 +5,11 @@ import { useBusiness } from "../../contexts/BusinessContext";
 import { useResource } from "../../hooks/useResource";
 import { api } from "../../services/api";
 import { errorMessage } from "../../services/session";
-import { Button, Card, Choices, Input, Page, Status, styles } from "../../components/ui";
+import { Button, Card, Choices, Input, Page, Status, useStyles } from "../../components/ui";
 
 export default function OrderDetail(){
+  const styles = useStyles();
+
   const {id}=useLocalSearchParams<{id:string}>(), {role}=useBusiness();
   const resource=useResource<any>(`/orders/${id}`),members=useResource<any>(role==="admin"||role==="encargado"?"/drivers":"/orders");
   const [driver,setDriver]=useState(""),[reason,setReason]=useState(""),[error,setError]=useState(""),[busy,setBusy]=useState(false);

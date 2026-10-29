@@ -10,7 +10,7 @@ export default function Create() {
         title="Nuevo producto"
         subtitle="Cargá sus datos y las unidades que ya tenés disponibles."
       >
-        <IdentityBanner title="Dale lugar a un nuevo producto." subtitle="Definí su compra, venta y categoría. Podés cargar las existencias iniciales en este mismo formulario." badge="AMPLIÁ TU INVENTARIO" icon="cube-outline"/>
+        <IdentityBanner title="Sumá una caja a tu catálogo." subtitle="Definí su tamaño, tipo y precio de distribución. Podés cargar las existencias iniciales en este mismo formulario." badge="AMPLIÁ TU INVENTARIO" icon="cube-outline"/>
         <Card>
           <ProductForm onSaved={() => router.replace("/(tabs)/products")} />
         </Card>

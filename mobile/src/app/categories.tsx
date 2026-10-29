@@ -1,4 +1,2 @@
-import { Catalog } from "../screens/Catalog";
-export default function Categories() {
-  return <Catalog entity="categories" />;
-}
+import {Redirect} from "expo-router";
+export default function LegacyCategories(){return <Redirect href="/(tabs)/products"/>;}

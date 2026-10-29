@@ -18,26 +18,22 @@ const mysql = require("mysql2/promise");
     await db.beginTransaction();
     const [[business]] = await db.execute("SELECT id FROM negocios WHERE id=? AND activo=1 AND historico=0 FOR UPDATE", [businessId]);
     if (!business) throw new Error("Negocio inexistente, histórico o inactivo");
-    await db.execute(
-      "INSERT INTO categorias(nombre,descripcion,negocio_id) VALUES('Almacén demo','Productos de demostración',?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)", [businessId],
-    );
-    const [[category]] = await db.execute(
-      "SELECT id FROM categorias WHERE nombre='Almacén demo' AND negocio_id=?", [businessId],
-    );
-    await db.execute(
-      "INSERT INTO proveedores(nombre,email,negocio_id) VALUES('Proveedor demo','demo@example.com',?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)", [businessId],
-    );
-    const [[supplier]] = await db.execute(
-      "SELECT id FROM proveedores WHERE nombre='Proveedor demo' AND negocio_id=?", [businessId],
-    );
-    for (const [nombre, sku, precio, minimo] of [
-      ["Yerba mate 1 kg", "DEMO-YERBA", "4500.00", 5],
-      ["Azúcar 1 kg", "DEMO-AZUCAR", "1200.00", 10],
-    ]) {
-      await db.execute(
-        "INSERT INTO productos(nombre,sku,precio,stock_minimo,categoria_id,proveedor_id,negocio_id) VALUES(?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)",
-        [nombre, sku, precio, minimo, category.id, supplier.id, businessId],
-      );
+    const userId = Number(process.env.SEED_USER_ID);
+    const [[actor]] = await db.execute("SELECT usuario_id FROM negocio_usuarios WHERE negocio_id=? AND usuario_id=? AND rol='encargado' AND estado='activo'", [businessId,userId]);
+    if (!actor) throw new Error("SEED_USER_ID debe ser un encargado activo para auditar las entradas demo");
+    await db.execute("INSERT INTO categorias(nombre,descripcion,negocio_id) VALUES('Cajas de cartón','Catálogo de cajas',?) ON DUPLICATE KEY UPDATE id=id", [businessId]);
+    const [[category]] = await db.execute("SELECT id FROM categorias WHERE nombre='Cajas de cartón' AND negocio_id=? AND activo=1", [businessId]);
+    if (!category) throw new Error('Categoría interna inactiva');
+    for (const [index,size] of ['chica','mediana','grande'].entries()) {
+      for (const type of ['estandar','reforzada']) for (const rectangular of [false,true]) {
+        const sku = `DEMO-CAJA-${size}-${type}-${rectangular?'R':'C'}`;
+        const [[exists]] = await db.execute('SELECT id FROM productos WHERE negocio_id=? AND sku=?',[businessId,sku]);
+        if (exists) continue;
+        const side=20+index*10, stock=100*(3-index), price=350+index*200+(type==='reforzada'?150:0);
+        const [result]=await db.execute('INSERT INTO productos(nombre,sku,precio,costo_compra,stock,stock_minimo,categoria_id,negocio_id,size,type,dimensiones,descripcion) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+          [`Caja ${size} ${type==='estandar'?'estándar':type}${rectangular?' rectangular':''} · DEMO`,sku,price,price*0.65,stock,50,category.id,businessId,size,type,`${side} × ${side} × ${rectangular?side/2:side} cm`,'Datos de demostración: precios y cantidades ficticios.']);
+        await db.execute("INSERT INTO movimientos_stock(producto_id,usuario_id,tipo,cantidad,stock_anterior,stock_nuevo,motivo,negocio_id) VALUES(?,?,'entrada',?,0,?,'Entrada de demostración (seed)',?)",[result.insertId,userId,stock,stock,businessId]);
+      }
     }
     await db.commit();
     console.log(

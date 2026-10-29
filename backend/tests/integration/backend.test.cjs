@@ -24,7 +24,7 @@ test("API completa contra MySQL (base temporal aislada)", async (t) => {
       "utf8",
     );
     await admin.query(
-      schema.replace(/^CREATE DATABASE.*\nUSE stockflow;\n/, ""),
+      schema.replace(/^CREATE DATABASE[^\r\n]*\r?\nUSE stockflow;\r?\n/, ""),
     );
     process.env.DB_NAME = dbName;
     execFileSync(process.execPath, ["scripts/migrate.cjs"], {

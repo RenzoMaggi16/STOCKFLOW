@@ -66,3 +66,11 @@ StockFlow organiza una distribuidora: productos, clientes, pedidos de varios art
 6. Mostrar que otra distribuidora no puede acceder a los mismos clientes ni pedidos y que el mismo usuario puede tener otro rol allí.
 7. Mostrar pruebas de concurrencia y rollback.
 8. Explicar qué fue probado en Android y qué continúa pendiente, sin presentar integraciones sin credenciales como realizadas.
+
+
+## Por qué una distribuidora mayorista de cajas de cartón
+Un único nicho permite explicar y probar el circuito completo sin construir un ERP. Tres tamaños y dos tipos bastan para clasificar; las dimensiones describen cada presentación. Compra/distribución, stock mínimo, reservas y entregas muestran un problema real y acotado. No hay facturación fiscal, variantes industriales ni seguimiento GPS permanente.
+
+Demostración sugerida: jefe invita a ventas/depósito/reparto; encargado carga cajas; vendedor registra cliente y pedido multiproducto; encargado reserva y prepara; jefe/encargado asigna repartidor; repartidor consulta mapa, retira y entrega; revisar salida auditada y dashboard. Repetir entrega debe rechazarse sin descontar dos veces. Intentar la acción con otro rol debe dar 403. Cambiar distribuidora demuestra aislamiento. Alternar modos claro/oscuro y probar filtros.
+
+Separar evidencia: pruebas SQL/HTTP automatizadas, recorrido de interfaz web, export Android y APK instalada son verificaciones distintas. Ver ESTADO_PROYECTO.md para lo realmente ejecutado y credenciales pendientes.

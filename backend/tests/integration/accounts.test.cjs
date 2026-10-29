@@ -41,7 +41,7 @@ test("Cuentas, reportes y correo SMTP local real", async (t) => {
           path.join(__dirname, "../../database/schema.sql"),
           "utf8",
         )
-      ).replace(/^CREATE DATABASE.*\nUSE stockflow;\n/, ""),
+      ).replace(/^CREATE DATABASE[^\r\n]*\r?\nUSE stockflow;\r?\n/, ""),
     );
     process.env.DB_NAME = name;
     execFileSync(process.execPath, ["scripts/migrate.cjs"], {
@@ -473,6 +473,22 @@ test("Cuentas, reportes y correo SMTP local real", async (t) => {
         env.GOOGLE_CLIENT_ID = "";
         env.GOOGLE_CLIENT_SECRET = "";
       }
+    });
+    await t.test('Facebook: identidad con verificación local y sin vinculación insegura (proveedor simulado)',async()=>{
+      const oauth=require('../../dist/services/oauth.service'),env=require('../../dist/config/env').env,originalFetch=global.fetch;
+      env.FACEBOOK_CLIENT_ID='test-facebook';env.FACEBOOK_CLIENT_SECRET='test-secret';
+      const verifier='f'.repeat(64),challenge=crypto.createHash('sha256').update(verifier).digest('base64url');
+      let email='facebook-new@example.com';
+      global.fetch=async url=>String(url).includes('/oauth/access_token')?Response.json({access_token:'fb-test'}):Response.json({id:'fb-user',name:'Facebook Test',email});
+      try {
+        const start=await oauth.start('facebook',challenge);const ticket=await oauth.complete('facebook',new URL(start.url).searchParams.get('state'),'code');
+        const session=await oauth.exchange(ticket,verifier);assert.equal(session.user.email_verificado,false);
+        await assert.rejects(oauth.exchange(ticket,verifier));
+        email=employee.user.email;
+        global.fetch=async url=>String(url).includes('/oauth/access_token')?Response.json({access_token:'fb-test'}):Response.json({id:'fb-another-user',name:'Existing',email});
+        const next=await oauth.start('facebook',challenge);
+        await assert.rejects(oauth.complete('facebook',new URL(next.url).searchParams.get('state'),'code'),e=>e.code==='ACCOUNT_EXISTS_UNVERIFIED');
+      } finally {global.fetch=originalFetch;env.FACEBOOK_CLIENT_ID='';env.FACEBOOK_CLIENT_SECRET='';}
     });
     await t.test(
       "OAuth sin credenciales informa bloqueo, ticket usa prueba de posesión",

@@ -23,10 +23,14 @@ const schema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().default(""),
   GITHUB_CLIENT_ID: z.string().default(""),
   GITHUB_CLIENT_SECRET: z.string().default(""),
+  FACEBOOK_CLIENT_ID: z.string().default(""),
+  FACEBOOK_CLIENT_SECRET: z.string().default(""),
+  FACEBOOK_GRAPH_VERSION: z.string().regex(/^v\d+\.0$/).default("v24.0"),
   DISCORD_CLIENT_ID: z.string().default(""),
   DISCORD_CLIENT_SECRET: z.string().default(""),
   DB_SSL: z.enum(["true", "false"]).default("false"),
   DB_SSL_CA_FILE: z.string().default(""),
+  DB_SSL_REJECT_UNAUTHORIZED: z.enum(["true", "false"]).default("true"),
   CORS_ORIGINS: z.string().default("http://localhost:8081"),
 });
 const parsed = schema.safeParse(process.env);

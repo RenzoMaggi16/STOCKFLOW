@@ -4,10 +4,12 @@ import { useBusiness } from "../contexts/BusinessContext";
 import { useResource } from "../hooks/useResource";
 import { api } from "../services/api";
 import { errorMessage } from "../services/session";
-import { Button, Card, Choices, Input, Page, Status, styles } from "../components/ui";
+import { Button, Card, Choices, Input, Page, Status, useStyles } from "../components/ui";
 import { Guard } from "../components/Guard";
 
-export default function Adjustments(){const {role}=useBusiness(),requests=useResource<any[]>("/stock/adjustment-requests"),products=useResource<any>("/products?limit=100");
+export default function Adjustments(){
+  const styles = useStyles();
+const {role}=useBusiness(),requests=useResource<any[]>("/stock/adjustment-requests"),products=useResource<any>("/products?limit=100");
   const [product,setProduct]=useState(""),[stock,setStock]=useState(""),[reason,setReason]=useState(""),[review,setReview]=useState<Record<number,string>>({}),[busy,setBusy]=useState(false),[error,setError]=useState("");
   async function create(){setBusy(true);setError("");try{await api.post("/stock/adjustment-requests",{producto_id:Number(product),stock_propuesto:Number(stock),motivo:reason});setProduct("");setStock("");setReason("");await requests.load();}catch(e){setError(errorMessage(e));}finally{setBusy(false);}}
   async function decide(id:number,action:"approve"|"reject"){setBusy(true);setError("");try{await api.post(`/stock/adjustment-requests/${id}/${action}`,{motivo:review[id]});await requests.load();}catch(e){setError(errorMessage(e));}finally{setBusy(false);}}

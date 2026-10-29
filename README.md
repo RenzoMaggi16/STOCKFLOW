@@ -1,3 +1,9 @@
+# StockFlow · Distribuidora mayorista de cajas de cartón
+
+Catálogo por tamaño y tipo, cuatro roles, stock auditado, pedidos multiproducto, clientes/ranking y entregas con mapa Android.
+
+La especialización del 28/10/2026 está documentada en [auditoría](docs/AUDITORIA_CARTON.md), [instalación](docs/INSTALACION.md), [API](docs/API.md) y [estado verificable](docs/ESTADO_PROYECTO.md). Conserva los módulos e historial existentes.
+
 # StockFlow
 
 Aplicación móvil de gestión de distribuidoras, desarrollada como proyecto final escolar. Cada persona puede crear distribuidoras, invitar integrantes por correo y trabajar con un rol diferente en cada una. Productos, clientes, pedidos, reservas, entregas y movimientos se aíslan por distribuidora.

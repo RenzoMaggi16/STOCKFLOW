@@ -4,8 +4,11 @@ import { authorize } from "../middleware/auth";
 import { idSchema } from "../validators/inventory";
 import { adjustmentSchema, assignmentSchema, clientSchema, orderSchema, ratingSchema, reasonSchema } from "../validators/distributor";
 import * as service from "../services/distributor.service";
+import { geocode } from "../services/geocoding.service";
+import rateLimit from "express-rate-limit";
 
 const router=Router();
+router.post("/geocode",authorize("admin","empleado"),rateLimit({windowMs:60000,limit:10}),async(req,res)=>res.json({success:true,data:await geocode(z.object({address:z.string().trim().min(3).max(600)}).strict().parse(req.body).address)}));
 router.get("/clients",authorize("admin","encargado","empleado"),async(req,res)=>res.json({success:true,data:await service.listClients(req.auth!)}));
 router.post("/clients",authorize("empleado"),async(req,res)=>res.status(201).json({success:true,data:await service.createClient(req.auth!,clientSchema.parse(req.body))}));
 router.patch("/clients/:id",authorize("admin","empleado"),async(req,res)=>res.json({success:true,data:await service.editClient(req.auth!,idSchema.parse(req.params.id),clientSchema.partial().extend({activo:z.boolean().optional()}).strict().refine(v=>Object.keys(v).length>0).parse(req.body))}));

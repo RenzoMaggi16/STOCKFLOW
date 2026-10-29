@@ -17,12 +17,7 @@ const filters = z
     "Período inválido",
   );
 router.get("/dashboard", async (req, res) => {
-  const metrics = await reports.summary(req.auth!.businessId);
-  const { valor, ...basic } = metrics;
-  res.json({
-    success: true,
-    data: ["admin", "encargado"].includes(req.auth!.role) ? metrics : basic,
-  });
+  res.json({success:true,data:await reports.dashboard(req.auth!)});
 });
 router.use("/reports", authorize("admin", "encargado"));
 router.get("/reports/summary", async (req, res) =>

@@ -196,3 +196,17 @@ Por ejemplo, un pedido de 7 aguas a $12,50 y 2 jugos a $5,00 guarda total $97,50
 | 503 | MAIL_NOT_CONFIGURED, MAIL_UNAVAILABLE, OAUTH_NOT_CONFIGURED |
 
 Registro/login/refresh/códigos comparten un límite de 20 solicitudes por IP en 15 minutos. Social admite 30 por 15 minutos. Para producción con múltiples instancias se debe usar rate limiting compartido.
+
+
+## Catálogo especializado (28/10/2026)
+`GET /api/products?size=chica&type=reforzada&search=CAJA&page=1&limit=20`: size admite chica/mediana/grande; type admite estandar/reforzada; búsqueda por nombre o SKU. limit máximo 100. Valores desconocidos: 422. Se mantienen q/categoria_id/proveedor_id/stock para compatibilidad con clientes anteriores, sin exponerlos como filtros del nuevo catálogo.
+
+POST/PATCH de productos aceptan size, type, dimensiones (150 caracteres) e imagen_url HTTPS. El formulario exige tamaño y tipo; la API permite omitirlos por compatibilidad histórica. categoria_id es opcional: al crear se resuelve la categoría interna Cajas de cartón en la distribuidora activa. Stock no es editable con PATCH. stock_inicial solo al crear, auditado y restringido a encargado cuando es positivo.
+
+`GET /api/dashboard` conserva métricas de inventario y agrega pedidos_pendientes, entregas_pendientes, pedidos_entregados, para_preparar, pagos_informados, ultimos_pedidos y mas_distribuidos. Admin/encargado reciben stock_bajo_productos y movimientos_recientes. Repartidor recibe solo agregados de sus asignaciones. Empleado recibe agregados de sus propios pedidos. Todas las consultas filtran negocio_id.
+
+Clientes aceptan localidad, provincia, latitud (-90..90) y longitud (-180..180). Coordenadas deben enviarse juntas o ambas null. Modificar dirección sin coordenadas las invalida. `/deliveries` y detalle de pedido incluyen dirección y coordenadas; conservan el control de repartidor asignado.
+
+`POST /api/geocode {"address":"dirección, localidad, provincia"}`: admin/empleado; máximo 10 consultas/minuto por IP; devuelve hasta cinco candidatos con latitud,longitud,direccion. No guarda automáticamente. 503 sin proveedor configurado, 502 ante fallo externo. El endpoint del proveedor y la clave son privados del backend.
+
+OAuth Facebook: `/api/auth/social/facebook/...`, mismo flujo de state, ticket y prueba de posesión que los proveedores existentes. El correo se verifica por StockFlow; no se vincula silenciosamente una cuenta existente sin verificación del proveedor.

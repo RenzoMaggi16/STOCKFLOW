@@ -43,7 +43,7 @@ const { SMTPServer } = require("../../backend/node_modules/smtp-server");
     await db.query(
       fs
         .readFileSync(path.join(backend, "database/schema.sql"), "utf8")
-        .replace(/^CREATE DATABASE.*\nUSE stockflow;\n/, ""),
+        .replace(/^CREATE DATABASE[^\r\n]*\r?\nUSE stockflow;\r?\n/, ""),
     );
     execFileSync(process.execPath, ["scripts/migrate.cjs"], {
       cwd: backend,

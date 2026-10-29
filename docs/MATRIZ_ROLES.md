@@ -37,3 +37,14 @@ La última evaluación guardada de cada cliente determina la puntuación `0,5 ×
 `backend/tests/integration/distributor.test.cjs` usa una base MySQL temporal. Comprueba HTTP 403 cruzado para las 12 acciones exclusivas, aislamiento de distribuidoras, pedido multiproducto y precio fijo, reservas, intento de sobreventa, entrega concurrente con una sola salida por producto, devolución, ranking ponderado, solicitudes extraordinarias y acceso de repartidor solo a pedidos asignados. También se ejecutan pruebas previas de autenticación, JWT, correo, invitaciones e inventario; los casos antiguos que daban salidas manuales a otros roles deben migrarse al nuevo flujo.
 
 Ejecutar con MySQL de pruebas disponible: `TEST_DB_PORT=3306 npm --prefix backend run test:integration`. La migración `007_distributors.sql` conserva productos, usuarios, invitaciones y movimientos previos. Antes de migrar una instalación con datos, hacer copia de la base. La prueba de APK en teléfono requiere una API HTTPS accesible desde Android y un build EAS real; una exportación JS no la sustituye.
+
+
+## Confirmación de exclusividad en la especialización
+| Rol | Tres operaciones exclusivas | Rutas |
+|---|---|---|
+| Jefe (admin) | Invitar/administrar empleados; cambiar roles; revisar ajustes extraordinarios | /businesses/:id/invitations, /businesses/:id/members/:id, /stock/adjustment-requests/:id/approve o reject |
+| Encargado | Recibir cajas; aprobar/rechazar preparación; ajuste ordinario | /stock/receive, /orders/:id/approve-preparation o reject-preparation, /stock/ordinary-adjustment |
+| Ventas (empleado) | Crear cliente; crear pedido; aviso de pago | POST /clients, POST /orders, /orders/:id/payment-notice |
+| Repartidor | Retiro; entrega; fallo de entrega | /orders/:id/pickup, delivered, delivery-failed |
+
+Otros roles reciben 403 en acciones exclusivas. Un repartidor no asignado recibe 404 para un pedido ajeno. Mapas reutiliza /deliveries y no amplía permisos. Geocodificación: admin y empleado, quienes editan direcciones; el repartidor no modifica clientes. La navegación visible no sustituye autorización de backend.

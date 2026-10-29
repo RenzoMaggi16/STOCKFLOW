@@ -11,14 +11,14 @@ const path = require("node:path");
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     ssl: process.env.DB_SSL === "true" ? {
-      rejectUnauthorized: true,
+      rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false",
       ...(process.env.DB_SSL_CA_FILE ? { ca: require("node:fs").readFileSync(process.env.DB_SSL_CA_FILE, "utf8") } : {}),
     } : undefined,
     multipleStatements: true,
   });
   try {
     const [[lock]] = await db.query(
-      "SELECT GET_LOCK('stockflow_migrations',10) AS acquired",
+      "SELECT GET_LOCK(CONCAT('stockflow:',DATABASE()),30) AS acquired",
     );
     if (lock.acquired !== 1)
       throw new Error("Otra migración está en ejecución");
@@ -44,7 +44,7 @@ const path = require("node:path");
       console.log("Aplicada:", file);
     }
   } finally {
-    await db.query("SELECT RELEASE_LOCK('stockflow_migrations')");
+    await db.query("SELECT RELEASE_LOCK(CONCAT('stockflow:',DATABASE()))");
     await db.end();
   }
 })().catch((e) => {

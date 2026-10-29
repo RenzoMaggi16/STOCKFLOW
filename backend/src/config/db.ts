@@ -8,7 +8,7 @@ export const pool = mysql.createPool({
   password: env.DB_PASSWORD,
   database: env.DB_NAME,
   ssl: env.DB_SSL === "true" ? {
-    rejectUnauthorized: true,
+    rejectUnauthorized: env.DB_SSL_REJECT_UNAUTHORIZED === "true",
     ...(env.DB_SSL_CA_FILE ? { ca: readFileSync(env.DB_SSL_CA_FILE, "utf8") } : {}),
   } : undefined,
   waitForConnections: true,

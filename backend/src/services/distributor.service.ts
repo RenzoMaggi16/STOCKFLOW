@@ -34,6 +34,7 @@ export async function listClients(actor: BusinessActor) {
 export async function createClient(actor: BusinessActor, data: Record<string,string|number|boolean|null|undefined>) {
   return transaction(async conn => {
     await lockAccess(conn,actor,["empleado"]);
+    validateCoordinates(data);
     const keys=Object.keys(data), values=Object.values(data).map(v=>v ?? null);
     const [result]=await conn.execute<ResultSetHeader>(`INSERT INTO clientes(negocio_id,${keys.join(",")}) VALUES(?,${keys.map(()=>"?").join(",")})`,[actor.businessId,...values]);
     const [rows]=await conn.execute<RowDataPacket[]>("SELECT * FROM clientes WHERE id=? AND negocio_id=?",[result.insertId,actor.businessId]);
@@ -45,6 +46,8 @@ export async function editClient(actor: BusinessActor,id:number,data:Record<stri
     await lockAccess(conn,actor,["admin","empleado"]);
     const [rows]=await conn.execute<RowDataPacket[]>("SELECT id FROM clientes WHERE id=? AND negocio_id=? FOR UPDATE",[id,actor.businessId]);
     if(!rows[0]) throw missing();
+    validateCoordinates(data);
+    if (("direccion_entrega" in data || "localidad" in data || "provincia" in data) && !("latitud" in data)) data={...data,latitud:null,longitud:null};
     const keys=Object.keys(data);
     await conn.execute(`UPDATE clientes SET ${keys.map(k=>`${k}=?`).join(",")} WHERE id=? AND negocio_id=?`,[...Object.values(data).map(v=>v??null),id,actor.businessId]);
     const [updated]=await conn.execute<RowDataPacket[]>("SELECT * FROM clientes WHERE id=? AND negocio_id=?",[id,actor.businessId]);
@@ -91,7 +94,7 @@ export async function createOrder(actor:BusinessActor,data:NewOrder) {
 export async function listOrders(actor:BusinessActor) {
   const where=actor.role==="repartidor"?"AND p.repartidor_id=?":"";
   const params=actor.role==="repartidor"?[actor.businessId,actor.userId]:[actor.businessId];
-  const [rows]=await pool.execute<RowDataPacket[]>(`SELECT p.*,c.nombre_comercial,c.direccion_entrega,u.nombre AS vendedor FROM pedidos p JOIN clientes c ON c.id=p.cliente_id JOIN usuarios u ON u.id=p.creado_por WHERE p.negocio_id=? ${where} ORDER BY p.id DESC LIMIT 200`,params);
+  const [rows]=await pool.execute<RowDataPacket[]>(`SELECT p.*,c.nombre_comercial,c.direccion_entrega,c.localidad,c.provincia,c.latitud,c.longitud,u.nombre AS vendedor FROM pedidos p JOIN clientes c ON c.id=p.cliente_id JOIN usuarios u ON u.id=p.creado_por WHERE p.negocio_id=? ${where} ORDER BY p.id DESC LIMIT 200`,params);
   return rows;
 }
 export async function listDrivers(actor:BusinessActor) {
@@ -99,7 +102,7 @@ export async function listDrivers(actor:BusinessActor) {
   return rows;
 }
 export async function orderDetail(actor:BusinessActor,id:number) {
-  const [rows]=await pool.execute<RowDataPacket[]>("SELECT p.*,c.nombre_comercial,c.direccion_entrega,c.telefono FROM pedidos p JOIN clientes c ON c.id=p.cliente_id WHERE p.id=? AND p.negocio_id=?",[id,actor.businessId]);
+  const [rows]=await pool.execute<RowDataPacket[]>("SELECT p.*,c.nombre_comercial,c.direccion_entrega,c.localidad,c.provincia,c.latitud,c.longitud,c.telefono FROM pedidos p JOIN clientes c ON c.id=p.cliente_id WHERE p.id=? AND p.negocio_id=?",[id,actor.businessId]);
   const item=rows[0];
   if(!item || (actor.role==="repartidor" && Number(item.repartidor_id)!==actor.userId)) throw missing();
   const [details]=await pool.execute<RowDataPacket[]>("SELECT d.*,pr.nombre FROM pedido_detalles d JOIN productos pr ON pr.id=d.producto_id WHERE d.negocio_id=? AND d.pedido_id=?",[actor.businessId,id]);
@@ -243,4 +246,9 @@ export async function reviewAdjustment(actor:BusinessActor,id:number,approve:boo
     await conn.execute("UPDATE solicitudes_ajuste SET estado=?,revisado_por=?,revisado_en=UTC_TIMESTAMP(),motivo_revision=? WHERE negocio_id=? AND id=?",[approve?"aprobada":"rechazada",actor.userId,reason,actor.businessId,id]);
     return {id,estado:approve?"aprobada":"rechazada"};
   });
+}
+
+function validateCoordinates(data: Record<string,unknown>) {
+  if ((data.latitud != null) !== (data.longitud != null) || ('latitud' in data) !== ('longitud' in data))
+    throw new HttpError(422,'Indicá latitud y longitud juntas','VALIDATION_ERROR');
 }

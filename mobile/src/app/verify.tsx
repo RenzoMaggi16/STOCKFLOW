@@ -18,7 +18,7 @@ export default function Verify() {
       title="Verificá tu correo"
       subtitle={`Enviaremos un código a ${auth.user.email}. Dura 10 minutos.`}
     >
-      <IdentityBanner title="Un paso más para empezar." subtitle="Confirmá tu correo para crear tu negocio y trabajar con tu equipo." badge="PROTEGÉ TU CUENTA" icon="mail-outline"/>
+      <IdentityBanner title="Un paso más para empezar." subtitle="Confirmá tu correo para crear tu distribuidora y trabajar con tu equipo." badge="PROTEGÉ TU CUENTA" icon="mail-outline"/>
       <Button
         title="Enviar / reenviar código"
         disabled={busy}

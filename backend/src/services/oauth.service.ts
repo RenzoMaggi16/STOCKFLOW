@@ -7,7 +7,7 @@ import { HttpError } from "../utils/errors";
 import { hashToken } from "./tokens";
 import { transaction } from "./inventory.service";
 import { socialSession } from "./auth.service";
-export const providerSchema = z.enum(["google", "github", "discord"]);
+export const providerSchema = z.enum(["google", "github", "facebook", "discord"]);
 type Provider = z.infer<typeof providerSchema>;
 function config(p: Provider) {
   const configs = {
@@ -24,6 +24,12 @@ function config(p: Provider) {
       authorize: "https://github.com/login/oauth/authorize",
       token: "https://github.com/login/oauth/access_token",
       scope: "read:user user:email",
+    },
+    facebook: {
+      id: env.FACEBOOK_CLIENT_ID, secret: env.FACEBOOK_CLIENT_SECRET,
+      authorize: `https://www.facebook.com/${env.FACEBOOK_GRAPH_VERSION}/dialog/oauth`,
+      token: `https://graph.facebook.com/${env.FACEBOOK_GRAPH_VERSION}/oauth/access_token`,
+      scope: 'email,public_profile',
     },
     discord: {
       id: env.DISCORD_CLIENT_ID,
@@ -160,6 +166,12 @@ export async function complete(p: Provider, state: string, code: string) {
     email = chosen?.email;
     name = u.name || u.login;
     verified = !!chosen;
+  } else if (p === 'facebook') {
+    const u = await json(`https://graph.facebook.com/${env.FACEBOOK_GRAPH_VERSION}/me?fields=id,name,email`, {headers});
+    sub = u.id; email = u.email; name = u.name;
+    // Facebook no acredita email_verified: verificar por email en StockFlow.
+    verified = false;
+    if (!email) throw new HttpError(422,'Facebook no compartió un correo; usá registro por email','EMAIL_REQUIRED');
   } else {
     const u = await json("https://discord.com/api/v10/users/@me", { headers });
     sub = u.id;

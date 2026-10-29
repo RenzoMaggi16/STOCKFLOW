@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
 import { IdentityBanner, SectionHeading, design } from "../../components/WorkspaceDesign";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import { useBusiness } from "../../contexts/BusinessContext";
 import { useResource } from "../../hooks/useResource";
 import {
@@ -12,23 +12,17 @@ import {
   Choices,
   Status,
   Pager,
-  styles,
+  useStyles,
   money,
 } from "../../components/ui";
 export default function Products() {
+  const styles = useStyles();
+
   const { role } = useBusiness();
-  const params = useLocalSearchParams<{ proveedor_id?: string; stock?: string }>();
-  const [q, setQ] = useState(""),
-    [localStock, setStock] = useState(""),
-    [category, setCategory] = useState(""),
-    [page, setPage] = useState(1);
-  const stock = params.stock ?? localStock;
-  const cats = useResource("/categories?limit=100");
-  const r = useResource(
-    `/products?page=${page}&q=${encodeURIComponent(q)}${stock ? `&stock=${stock}` : ""}${category ? `&categoria_id=${category}` : ""}${params.proveedor_id ? `&proveedor_id=${params.proveedor_id}` : ""}`,
-  );
+  const [q,setQ]=useState(''), [size,setSize]=useState(''), [type,setType]=useState(''), [page,setPage]=useState(1);
+  const r=useResource(`/products?page=${page}&search=${encodeURIComponent(q)}${size?`&size=${size}`:''}${type?`&type=${type}`:''}`);
   return (
-    <Page title="Productos" subtitle="Existencias claras, decisiones simples">
+    <Page title="Cajas de cartón" subtitle="Existencias claras, decisiones simples">
       <IdentityBanner title="Tu catálogo, bajo control." subtitle="Consultá precios, encontrá productos y anticipá la próxima reposición." badge="INVENTARIO" icon="cube-outline"/>
       <Card><SectionHeading title="Encontrá tu producto" icon="search-outline"/>
       <Input
@@ -39,44 +33,13 @@ export default function Products() {
           setPage(1);
         }}
       />
-      <Choices
-        value={stock}
-        onChange={(v) => {
-          setStock(v);
-          router.setParams({ stock: v });
-          setPage(1);
-        }}
-        options={[
-          { value: "", label: "Todos" },
-          { value: "disponible", label: "Disponibles" },
-          { value: "bajo", label: "Stock bajo" },
-          { value: "sin", label: "Sin stock" },
-        ]}
-      />
-      <Choices
-        value={category}
-        onChange={(v) => {
-          setCategory(v);
-          setPage(1);
-        }}
-        options={[
-          { value: "", label: "Todas las categorías" },
-          ...(cats.data?.items || []).map((c: any) => ({
-            value: String(c.id),
-            label: c.nombre,
-          })),
-        ]}
-      />
-      {!!params.proveedor_id && (
+      <Text style={styles.label}>Tamaño</Text>
+      <Choices value={size} onChange={v=>{setSize(v);setPage(1);}} options={[{value:'',label:'Todos'},{value:'chica',label:'Chica'},{value:'mediana',label:'Mediana'},{value:'grande',label:'Grande'}]}/>
+      <Text style={styles.label}>Tipo</Text>
+      <Choices value={type} onChange={v=>{setType(v);setPage(1);}} options={[{value:'',label:'Todos'},{value:'estandar',label:'Estándar'},{value:'reforzada',label:'Reforzada'}]}/>
+      {["admin","encargado"].includes(role) && (
         <Button
-          title="Quitar filtro de proveedor"
-          secondary
-          onPress={() => router.setParams({ proveedor_id: "" })}
-        />
-      )}
-      {role !== "empleado" && (
-        <Button
-          title="Nuevo producto"
+          title="Nueva caja"
           onPress={() => router.push("/products/create")}
         />
       )}
@@ -91,10 +54,11 @@ export default function Products() {
         <View key={p.id} style={design.column}><Card>
           <SectionHeading title={p.nombre} subtitle={`SKU ${p.sku}`} icon="cube-outline"/>
           <Text style={styles.subtitle}>
-            Venta por unidad · {money(p.precio)}
+            Distribución por unidad · {money(p.precio)}
           </Text>
+          <Text style={styles.subtitle}>{p.size || "Tamaño pendiente"} · {p.type === "estandar" ? "Estándar" : p.type || "Tipo pendiente"}{p.dimensiones ? ` · ${p.dimensiones}` : ""}</Text>
           <Text style={styles.pill}>
-            {p.stock} unidades{p.stock <= p.stock_minimo ? " · Stock bajo" : ""}
+            {p.stock_disponible ?? p.stock} disponibles · {p.stock} físicas{p.stock <= p.stock_minimo ? " · Stock bajo" : ""}
           </Text>
           <Button
             title="Ver producto"

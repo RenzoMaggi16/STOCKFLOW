@@ -52,8 +52,9 @@ export async function update(
   );
 }
 export async function detail(entity: Entity, id: number, businessId: number) {
+  const selection = entity === "products" ? "*, stock - (SELECT COALESCE(SUM(r.cantidad),0) FROM reservas_pedido r WHERE r.producto_id=productos.id AND r.negocio_id=productos.negocio_id AND r.estado='activa') AS stock_disponible" : "*";
   const [rows] = await pool.execute<RowDataPacket[]>(
-    `SELECT * FROM ${tables[entity]} WHERE id=? AND negocio_id=? AND activo=1`,
+    `SELECT ${selection} FROM ${tables[entity]} WHERE id=? AND negocio_id=? AND activo=1`,
     [id, businessId],
   );
   if (!rows[0])

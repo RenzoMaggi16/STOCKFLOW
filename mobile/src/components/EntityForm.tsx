@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { SectionHeading } from "./WorkspaceDesign";
 import { Text, View } from "react-native";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { Button, Input, Sheet, Status, styles, Pager } from "./ui";
+import { Button, Input, Sheet, Status, useStyles, Pager, Choices } from "./ui";
 import { useResource } from "../hooks/useResource";
 import { api } from "../services/api";
 import { errorMessage } from "../services/session";
@@ -13,6 +13,7 @@ export type Field = {
   numeric?: boolean;
   secure?: boolean;
   resource?: string;
+  options?: {value:string;label:string}[];
   allowCreate?: boolean;
   section?: string;
   hint?: string;
@@ -31,6 +32,8 @@ export function ResourceSelect({
   onChange: (v: string) => void;
   allowCreate?: boolean;
 }) {
+  const styles = useStyles();
+
   const [open, setOpen] = useState(false),
     [q, setQ] = useState(""),
     [page, setPage] = useState(1),
@@ -85,7 +88,7 @@ export function ResourceSelect({
             setPage(1);
           }}
         />
-        {allowCreate && <><Text style={styles.subtitle}>Escribí el nombre y presioná Enter para seleccionar o crear el registro. Se guarda en este negocio, incluso si después cancelás el producto.</Text>{!!q.trim() && <Button title={creating ? "Guardando…" : `Usar o crear «${q.trim()}»`} disabled={creating} onPress={()=>void createOrSelect()}/>}<Status error={createError}/></>}
+        {allowCreate && <><Text style={styles.subtitle}>Escribí el nombre y presioná Enter para seleccionar o crear el registro. Se guarda en esta distribuidora, incluso si después cancelás el producto.</Text>{!!q.trim() && <Button title={creating ? "Guardando…" : `Usar o crear «${q.trim()}»`} disabled={creating} onPress={()=>void createOrSelect()}/>}<Status error={createError}/></>}
         <Button
           title="Sin selección"
           secondary
@@ -131,6 +134,8 @@ export function EntityForm({
   label?: string;
   preview?: (values: Record<string,string>) => React.ReactNode;
 }) {
+  const styles = useStyles();
+
   const {
     control,
     handleSubmit,
@@ -155,7 +160,7 @@ export function EntityForm({
               validate: f.validate,
             }}
             render={({ field }) =>
-              f.resource ? (
+              f.options ? <View style={{gap:6}}><Text style={styles.label}>{f.label}</Text><Choices value={field.value} onChange={field.onChange} options={f.options}/></View> : f.resource ? (
                 <ResourceSelect
                   resource={f.resource}
                   label={f.label}

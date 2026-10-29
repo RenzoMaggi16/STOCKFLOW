@@ -84,3 +84,17 @@ Editar el nombre desde Perfil. Activar/desactivar segundo factor requiere códig
 ## Diferencias por rol
 
 Ventas crea clientes y pedidos y registra avisos de pago. Depósito recibe mercadería, aprueba preparación y ajusta stock ordinariamente. Repartidor retira, entrega o registra fallas solo en pedidos asignados. Jefe invita y administra roles y decide ajustes extraordinarios. Todos gestionan su perfil y seguridad. Ver [matriz completa](MATRIZ_ROLES.md).
+
+
+## Trabajo con cajas de cartón
+Inicio presenta cuatro indicadores según tu rol. Jefe: Inicio, Inventario, Pedidos, Más. Depósito: Inicio, Depósito, Pedidos, Más. Ventas: Inicio, Clientes, Pedidos, Más. Reparto: Inicio, Entregas, Mapa, Perfil. Más reúne ranking/clientes, movimientos, ajustes, equipo, reportes y perfil según permisos.
+
+En Inventario buscá por nombre/SKU y elegí tamaño (chica, mediana, grande) y tipo (estándar, reforzada). Dimensiones son descriptivas. Creá cajas con SKU único de tu distribuidora, precio de distribución y mínimo; costo e imagen HTTPS son opcionales. Las cajas antiguas sin clasificación muestran un aviso hasta su edición. El encargado registra ingresos y ajustes; no se cambia el stock desde editar producto.
+
+Ventas crea clientes y pedidos de varios productos e informa pagos. Depósito aprueba preparación y reserva unidades; al entregar se descuentan una sola vez. Ranking de 1 a 5 estrellas pondera puntualidad 50%, acuerdos 30%, trato 20%, con motivo y autor.
+
+En Clientes completá dirección, localidad y provincia. Buscá ubicaciones y confirmá un candidato, o ingresá latitud y longitud. Cambiar dirección borra las coordenadas previas en el formulario. Ningún cliente recibe coordenadas ficticias automáticamente.
+
+En Mapa, el repartidor ve sus entregas pendientes. Mostrar mi ubicación solicita permiso solo mientras usa la app; denegarlo no bloquea la lista ni Google Maps. Tocá un marcador para ver el pedido o abrir indicaciones. Consultar y registrar entrega abre retiro, entrega exitosa, fallo con motivo e historial. Sin coordenadas se puede navegar por dirección.
+
+Perfil y apariencia permite Claro, Oscuro o Automático. Se guarda la preferencia; Automático sigue al sistema. Los errores permanecen visibles y ofrecen reintento cuando corresponde.

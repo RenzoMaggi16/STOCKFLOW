@@ -14,7 +14,7 @@ test('Distribuidora: permisos, reservas, entregas, devoluciones y ranking',async
     await db.query(`CREATE DATABASE ${name}`);
     await db.query(`USE ${name}`);
     const schema=await fs.readFile(path.join(__dirname,'../../database/schema.sql'),'utf8');
-    await db.query(schema.replace(/^CREATE DATABASE.*\nUSE stockflow;\n/,''));
+    await db.query(schema.replace(/^CREATE DATABASE[^\r\n]*\r?\nUSE stockflow;\r?\n/,''));
     process.env.DB_NAME=name;
     execFileSync(process.execPath,['scripts/migrate.cjs'],{cwd:path.join(__dirname,'../..'),env:process.env});
     pool=require('../../dist/config/db').pool;
@@ -32,6 +32,32 @@ test('Distribuidora: permisos, reservas, entregas, devoluciones y ranking',async
     const category=await ok('admin','POST','/categories',{nombre:'Bebidas'},business,201);
     const p1=await ok('encargado','POST','/products',{nombre:'Agua',sku:'AGUA',precio:'12.50',categoria_id:category.id,stock_inicial:10},business,201);
     const p2=await ok('encargado','POST','/products',{nombre:'Jugo',sku:'JUGO',precio:'5.00',categoria_id:category.id,stock_inicial:5},business,201);
+    await t.test('cajas: filtros, validación, dashboard, coordenadas y seed idempotente',async()=>{
+      const box=await ok('encargado','POST','/products',{nombre:'Caja chica reforzada',sku:'CAJA-CH-R',precio:'500.00',size:'chica',type:'reforzada',dimensiones:'20 × 20 × 20 cm',stock_inicial:20,stock_minimo:25},business,201);
+      const filtered=await ok('empleado','GET','/products?size=chica&type=reforzada&search=CAJA-CH',undefined,business);
+      assert.equal(filtered.total,1);assert.equal(filtered.items[0].id,box.id);
+      assert.equal((await req('admin','GET','/products?size=enorme',undefined,business)).status,422);
+      assert.equal((await ok('otro','GET','/products?search=CAJA-CH',undefined,otherBusiness)).total,0);
+      assert.equal((await req('admin','PATCH',`/products/${box.id}`,{stock:900},business)).status,422);
+      const dash=await ok('admin','GET','/dashboard',undefined,business);
+      assert.equal(Number(dash.productos),3);assert.equal(Number(dash.unidades_disponibles),35);assert.equal(dash.stock_bajo_productos[0].id,box.id);
+      const driverDash=await ok('repartidor','GET','/dashboard',undefined,business);
+      assert.equal(driverDash.productos,undefined);assert.equal(Number(driverDash.pedidos_total),0);
+      const loc=await ok('empleado','POST','/clients',{nombre_comercial:'Ubicación demo',direccion_entrega:'Dirección de prueba',localidad:'Localidad demo',provincia:'Provincia demo',latitud:-34.6,longitud:-58.4},business,201);
+      assert.equal((await req('empleado','PATCH',`/clients/${loc.id}`,{latitud:40},business)).status,422);
+      const changed=await ok('empleado','PATCH',`/clients/${loc.id}`,{direccion_entrega:'Otra dirección'},business);assert.equal(changed.latitud,null);assert.equal(changed.longitud,null);
+      assert.equal((await req('repartidor','POST','/geocode',{address:'Prueba'},business)).status,403);
+      const seedEnv={...process.env,SEED_BUSINESS_ID:String(business),SEED_USER_ID:String(users.encargado.user.id)};
+      execFileSync(process.execPath,['scripts/seed.cjs'],{cwd:path.join(__dirname,'../..'),env:seedEnv});
+      const [[seed]]=await db.execute("SELECT id,stock FROM productos WHERE negocio_id=? AND sku LIKE 'DEMO-CAJA-%' LIMIT 1",[business]);
+      await db.execute('UPDATE productos SET precio=999 WHERE id=?',[seed.id]);
+      execFileSync(process.execPath,['scripts/seed.cjs'],{cwd:path.join(__dirname,'../..'),env:seedEnv});
+      const [[count]]=await db.execute("SELECT COUNT(*) AS n FROM productos WHERE negocio_id=? AND sku LIKE 'DEMO-CAJA-%'",[business]);assert.equal(count.n,12);
+      const [[unchanged]]=await db.execute('SELECT precio,stock FROM productos WHERE id=?',[seed.id]);assert.equal(Number(unchanged.precio),999);assert.equal(unchanged.stock,seed.stock);
+      const [[moves]]=await db.execute('SELECT COUNT(*) AS n FROM movimientos_stock WHERE producto_id=?',[seed.id]);assert.equal(moves.n,1);
+      // Keep the existing workflow fixtures independent of this additional client.
+      await db.execute('UPDATE clientes SET activo=0 WHERE id=?',[loc.id]);
+    });
     let client,first;
     await t.test('cada acción exclusiva rechaza los otros roles',async()=>{
       const restricted=[
@@ -59,7 +85,7 @@ test('Distribuidora: permisos, reservas, entregas, devoluciones y ranking',async
       assert.equal(first.total,'97.50');assert.equal(first.items.length,2);
       await ok('encargado','POST',`/orders/${first.id}/approve-preparation`,{},business);
       const summary=await ok('admin','GET','/dashboard',undefined,business);
-      assert.equal(Number(summary.unidades),15);assert.equal(Number(summary.unidades_reservadas),9);assert.equal(Number(summary.unidades_disponibles),6);
+      assert.equal(Number(summary.unidades),2435);assert.equal(Number(summary.unidades_reservadas),9);assert.equal(Number(summary.unidades_disponibles),2426);
       assert.equal((await req('encargado','POST','/stock/ordinary-adjustment',{producto_id:p1.id,cantidad:6,motivo:'Conteo'},business)).status,409);
       const second=await ok('empleado','POST','/orders',{cliente_id:client.id,items:[{producto_id:p1.id,cantidad:4}]},business,201);
       assert.equal((await req('encargado','POST',`/orders/${second.id}/approve-preparation`,{},business)).status,409);

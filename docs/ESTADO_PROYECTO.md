@@ -1,3 +1,40 @@
+# Estado vigente — cajas de cartón — 29/10/2026
+
+## Implementado
+Catálogo de cajas con tamaño/tipo y búsqueda por nombre/SKU; campos descriptivos e imagen opcional; seed idempotente de 12 cajas con movimientos auditados. Temas Claro/Oscuro/Automático persistidos, paleta central y componentes reactivos. Dashboard SQL por rol y cuatro pestañas con Más. Mapa Android/web Leaflet/OpenStreetMap sin clave con marcadores de entregas asignadas, ubicación foreground, Google Maps y acciones reutilizadas del pedido. Clientes con localidad/provincia/coordenadas y geocodificación configurable. Facebook restaurado conservando Discord en backend y las identidades históricas.
+
+Se preservaron autenticación, invitaciones, ranking, reservas, auditoría, aislamiento y las tres acciones exclusivas por rol. No se descartaron los cambios locales que ya existían al iniciar.
+
+## Evidencia ejecutada
+- TypeScript backend y frontend: sin errores.
+- Build backend: correcto.
+- Unitarias backend: 5/5; frontend: 9/9, incluyendo contraste de texto y botones y resolución del tema automático.
+- Integración SQL/HTTP/SMTP: 34/34 (incluye las pruebas contenedoras). Se ejecutaron en bases temporales sobre MariaDB de XAMPP compatible con MySQL; no se presentan como un ensayo completo contra el servidor MySQL remoto.
+- Incluyen permisos positivos/negativos, aislamiento, reservas, doble entrega concurrente, rollback al fallar auditoría, filtros, dashboard, coordenadas y seed ejecutado dos veces sin sobrescribir datos.
+- Facebook y geocodificación: proveedor externo simulado en tests, no consentimiento real ni consulta geográfica real.
+- Recorrido Expo web + API + base temporal: cliente, pedido de dos productos, preparación, asignación, retiro, entrega, stock final, cuatro pestañas, Más/Perfil, filtro de tamaño y tema oscuro. Correcto. Capturas carton-*.png guardadas y revisadas.
+- Export Android/Hermes ejecutado correctamente. No equivale a APK instalada.
+- Introspección Expo previa: Location configurado; solo permisos de ubicación foreground e Internet; ubicación background bloqueada.
+
+## Base configurada
+Se revisó el esquema remoto. La estructura de 005 estaba presente pero faltaba su registro en schema_migrations. Se verificaron columnas, índices únicos y relaciones compuestas antes de conciliar ese registro, sin ejecutar de nuevo sus UPDATE históricos. Se creó una copia local de estructura/datos en `.local-backups/before-carton-1793227735202.json` (ignorada por Git, contiene datos privados). Después se aplicó 009_carton.sql correctamente. No se cargaron productos ficticios en una distribuidora real: el seed está disponible y fue verificado sobre datos de prueba.
+
+## Pendiente externo
+- Backend configurado: https://stockflow-api-renzo.onrender.com/api. Mapa reemplazado por Leaflet/OpenStreetMap sin clave; ver CONFIGURAR_APK.md.
+- Build EAS solicitado el 29/10: d4e1a01e-9de6-4aa7-a45c-bd7aca0a1e5f. Firma Android creada en EAS. Pendientes resultado de compilación e instalación/pruebas en Android físico.
+- Render /api/health no respondió en tres intentos de 20 a 55 segundos desde este equipo. No se confirmó disponibilidad remota ni login.
+- Mapa probado con Chromium: tiles reales de OpenStreetMap, selección y popup con texto seguro. Export Android, TypeScript y lint correctos tras el reemplazo.
+- GEOCODING_URL de un proveedor autorizado compatible con Nominatim si se desea buscar coordenadas; la edición manual y navegación por dirección quedan disponibles.
+- Configuración y consentimiento real de Facebook, y validación externa de los demás proveedores y correo.
+- El entorno heredado desactiva verificación TLS; antes de despliegue, configurar CA y verificación de certificados.
+
+## Decisiones de compatibilidad
+La API mantiene filtros antiguos y clasificación opcional para clientes históricos, aunque el formulario nuevo exige tamaño/tipo y solo expone esos filtros. Los productos anteriores no reciben clasificaciones inventadas. Categorías/proveedores se mantienen en SQL; la ruta antigua Categorías redirige al catálogo.
+
+No existe un módulo de recepciones planificadas: una recepción se registra cuando ingresan cajas. Por eso no se muestra una cifra ficticia de “recepciones pendientes”.
+
+## Historial anterior (no describe el estado vigente)
+
 # Estado del proyecto — 21/10/2026
 
 ## Actualización: distribuidoras
