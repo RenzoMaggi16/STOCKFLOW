@@ -12,7 +12,10 @@ import {
 import * as service from "../services/inventory.service";
 import { detail, type Entity } from "../repositories/inventory.repository";
 const router = Router();
+import {productValues,saveProductValues,valuesSchema} from '../services/product-values.service';
 router.use(authorize("admin", "encargado", "empleado", "repartidor"));
+router.get('/product-values',async(req,res)=>res.json({success:true,data:await productValues(req.auth!.businessId)}));
+router.put('/product-values',authorize('admin','encargado'),async(req,res)=>res.json({success:true,data:await saveProductValues(req.auth!,valuesSchema.parse(req.body))}));
 function crud(entity: Entity, schema: z.ZodObject<z.ZodRawShape>) {
   router.get(`/${entity}`, async (req, res) =>
     res.json({

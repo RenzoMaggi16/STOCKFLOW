@@ -98,3 +98,8 @@ En Clientes completá dirección, localidad y provincia. Buscá ubicaciones y co
 En Mapa, el repartidor ve sus entregas pendientes. Mostrar mi ubicación solicita permiso solo mientras usa la app; denegarlo no bloquea la lista ni Google Maps. Tocá un marcador para ver el pedido o abrir indicaciones. Consultar y registrar entrega abre retiro, entrega exitosa, fallo con motivo e historial. Sin coordenadas se puede navegar por dirección.
 
 Perfil y apariencia permite Claro, Oscuro o Automático. Se guarda la preferencia; Automático sigue al sistema. Los errores permanecen visibles y ofrecen reintento cuando corresponde.
+# Personalizar cajas y alertas
+
+En Más → Valores de cajas, el dueño y el encargado pueden renombrar características, modificar sus opciones y agregar otras (por ejemplo Forma: Cuadrada, Rectangular, Circular). Las opciones se escriben separadas por comas; si se dejan vacías, el formulario permite texto libre, útil para medidas. Guardar los valores y volver a abrir Nueva caja o Editar producto para usarlos. Los valores ya cargados se conservan aunque dejen de ofrecerse como opción nueva.
+
+En cada caja, «Alertar poco stock» indica las unidades a partir de las cuales aparece la alerta en catálogo/reportes/dashboard: con 10 se alerta al quedar 10 o menos. Se trata de una alerta visual dentro de la app.

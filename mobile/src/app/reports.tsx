@@ -62,7 +62,7 @@ export default function Reports() {
           <Text style={styles.subtitle}>Estimación: no representa ventas realizadas ni ganancia.</Text>
           <Text style={styles.title}>{money(totals.data?.summary.valor)}</Text>
           <Text style={styles.subtitle}>
-            Sin stock: {totals.data?.summary.sin_stock || 0} · Bajo mínimo:{" "}
+            Sin stock: {totals.data?.summary.sin_stock || 0} · Poco stock:{" "}
             {totals.data?.summary.stock_bajo || 0}
           </Text>
         </Card>
@@ -138,7 +138,7 @@ export default function Reports() {
           <Card key={p.id}>
             <Text style={styles.label}>{p.nombre}</Text>
             <Text style={styles.subtitle}>
-              Actual {p.stock} · Mínimo {p.stock_minimo}
+              Actual {p.stock} · Alertar poco stock: {p.stock_minimo} unidades o menos
             </Text>
           </Card>
         ))}

@@ -19,8 +19,9 @@ export default function Products() {
   const styles = useStyles();
 
   const { role } = useBusiness();
+  const config=useResource<{campos:{id:string;nombre:string;opciones:string[]}[]}>('/product-values');
   const [q,setQ]=useState(''), [size,setSize]=useState(''), [type,setType]=useState(''), [page,setPage]=useState(1);
-  const r=useResource(`/products?page=${page}&search=${encodeURIComponent(q)}${size?`&size=${size}`:''}${type?`&type=${type}`:''}`);
+  const r=useResource(`/products?page=${page}&search=${encodeURIComponent(q)}${size?`&size=${encodeURIComponent(size)}`:''}${type?`&type=${encodeURIComponent(type)}`:''}`);
   return (
     <Page title="Cajas de cartón" subtitle="Existencias claras, decisiones simples">
       <IdentityBanner title="Tu catálogo, bajo control." subtitle="Consultá precios, encontrá productos y anticipá la próxima reposición." badge="INVENTARIO" icon="cube-outline"/>
@@ -33,10 +34,7 @@ export default function Products() {
           setPage(1);
         }}
       />
-      <Text style={styles.label}>Tamaño</Text>
-      <Choices value={size} onChange={v=>{setSize(v);setPage(1);}} options={[{value:'',label:'Todos'},{value:'chica',label:'Chica'},{value:'mediana',label:'Mediana'},{value:'grande',label:'Grande'}]}/>
-      <Text style={styles.label}>Tipo</Text>
-      <Choices value={type} onChange={v=>{setType(v);setPage(1);}} options={[{value:'',label:'Todos'},{value:'estandar',label:'Estándar'},{value:'reforzada',label:'Reforzada'}]}/>
+      {config.data?.campos.filter(f=>f.id==='size'||f.id==='type').map(f=><View key={f.id}><Text style={styles.label}>{f.nombre}</Text>{f.opciones.length?<Choices value={f.id==='size'?size:type} onChange={v=>{(f.id==='size'?setSize:setType)(v);setPage(1);}} options={[{value:'',label:'Todos'},...f.opciones.map(value=>({value,label:value==='estandar'?'Estándar':value.charAt(0).toUpperCase()+value.slice(1)}))]}/>:<Input label={`Filtrar ${f.nombre}`} value={f.id==='size'?size:type} onChange={v=>{(f.id==='size'?setSize:setType)(v);setPage(1);}}/>}</View>)}
       {["admin","encargado"].includes(role) && (
         <Button
           title="Nueva caja"

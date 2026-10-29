@@ -278,7 +278,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "recover" }) {
                 {/* Value propositions */}
                 <View style={{ gap: 16, marginTop: 40 }}>
                   {[
-                    { icon: "cube-outline" as const, text: "Inventario centralizado y alertas de stock mínimo" },
+                    { icon: "cube-outline" as const, text: "Inventario centralizado y alertas de poco stock" },
                     { icon: "swap-horizontal-outline" as const, text: "Registro de ingresos, egresos y traslados" },
                     { icon: "people-outline" as const, text: "Gestión de roles: Admin, Encargado y Repartidores" },
                   ].map((item) => (

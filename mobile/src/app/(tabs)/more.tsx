@@ -4,6 +4,7 @@ import {Page,Card,Button} from '../../components/ui';
 export default function More(){
   const {role}=useBusiness();
   const links:[string,string,boolean][]=[
+    ['Valores de cajas','/product-values',role==='admin'||role==='encargado'],
     ['Catálogo de cajas','/(tabs)/products',role==='empleado'],
     ['Clientes y ranking','/(tabs)/clients',role==='admin'||role==='encargado'],
     ['Movimientos de cajas','/(tabs)/movements',role==='admin'||role==='encargado'],

@@ -24,6 +24,7 @@ export default function Detail() {
   const { id } = useLocalSearchParams();
   const { role } = useBusiness();
   const r = useResource(`/products/${id}`);
+  const config=useResource<{campos:{id:string;nombre:string}[]}>('/product-values');
   const [edit, setEdit] = useState(false);
   const p = r.data;
   return (
@@ -36,13 +37,14 @@ export default function Detail() {
             <Card>
               {!!p.imagen_url && <Image source={{uri:p.imagen_url}} accessibilityLabel={p.nombre} style={{width:"100%",height:180}} resizeMode="contain"/>}
               <Text style={styles.subtitle}>{p.size || "Tamaño pendiente"} · {p.type || "Tipo pendiente"} · {p.dimensiones || "Sin dimensiones"}</Text>
+              {config.data?.campos.filter(f=>f.id.startsWith('c_')).map(f=>{const attrs=typeof p.atributos==='string'?JSON.parse(p.atributos):p.atributos??{};return attrs[f.id]?<Text key={f.id} style={styles.subtitle}>{f.nombre}: {attrs[f.id]}</Text>:null;})}
               <SectionHeading title="Compra y venta" subtitle="Importes por unidad" icon="pricetag-outline"/>
               <Text style={styles.subtitle}>Costo de compra: {p.costo_compra == null ? "Sin especificar" : money(p.costo_compra)}</Text>
               <Text style={styles.subtitle}>Precio de venta</Text>
               <Text style={styles.title}>{money(p.precio)}</Text>
               {p.costo_compra != null && <Text style={styles.subtitle}>Diferencia por unidad: {money(Number(p.precio)-Number(p.costo_compra))} · Antes de impuestos y gastos</Text>}
               <Text style={styles.pill}>
-                {p.stock_disponible ?? p.stock} disponibles · {p.stock} físicas · Mínimo {p.stock_minimo}
+                {p.stock_disponible ?? p.stock} disponibles · {p.stock} físicas · Alertar poco stock: {p.stock_minimo} unidades o menos
               </Text>
               <Text style={styles.subtitle}>
                 {p.descripcion || "Sin descripción"}

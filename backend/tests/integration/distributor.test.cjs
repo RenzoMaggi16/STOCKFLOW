@@ -36,7 +36,17 @@ test('Distribuidora: permisos, reservas, entregas, devoluciones y ranking',async
       const box=await ok('encargado','POST','/products',{nombre:'Caja chica reforzada',sku:'CAJA-CH-R',precio:'500.00',size:'chica',type:'reforzada',dimensiones:'20 × 20 × 20 cm',stock_inicial:20,stock_minimo:25},business,201);
       const filtered=await ok('empleado','GET','/products?size=chica&type=reforzada&search=CAJA-CH',undefined,business);
       assert.equal(filtered.total,1);assert.equal(filtered.items[0].id,box.id);
-      assert.equal((await req('admin','GET','/products?size=enorme',undefined,business)).status,422);
+      assert.equal((await ok('admin','GET','/products?size=enorme',undefined,business)).total,0);
+      const config=await ok('admin','GET','/product-values',undefined,business);
+      config.campos.push({id:'c_material',nombre:'Material',opciones:['Kraft','Blanco']});
+      await ok('encargado','PUT','/product-values',config,business);
+      assert.equal((await req('empleado','PUT','/product-values',config,business)).status,403);
+      assert.equal((await ok('otro','GET','/product-values',undefined,otherBusiness)).campos.some(f=>f.id==='c_material'),false);
+      const custom=await ok('encargado','PATCH',`/products/${box.id}`,{size:'Extra grande',type:'Industrial',dimensiones:'40 x 60 x 20 cm',atributos:{c_forma:'Rectangular',c_material:'Kraft'}},business);
+      assert.equal(custom.size,'Extra grande');
+      const attrs=typeof custom.atributos==='string'?JSON.parse(custom.atributos):custom.atributos;
+      assert.equal(attrs.c_forma,'Rectangular');
+      await ok('encargado','PATCH',`/products/${box.id}`,{size:'chica',type:'reforzada'},business);
       assert.equal((await ok('otro','GET','/products?search=CAJA-CH',undefined,otherBusiness)).total,0);
       assert.equal((await req('admin','PATCH',`/products/${box.id}`,{stock:900},business)).status,422);
       const dash=await ok('admin','GET','/dashboard',undefined,business);

@@ -36,6 +36,7 @@ function Workspace() {
             <Stack.Screen name="products/create" />
             <Stack.Screen name="products/[id]" />
             <Stack.Screen name="categories" />
+            <Stack.Screen name="product-values" options={{title:"Valores de cajas"}} />
             <Stack.Screen name="suppliers" />
             <Stack.Screen name="reports" />
             <Stack.Screen name="business-settings" />

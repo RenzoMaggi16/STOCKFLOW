@@ -145,7 +145,7 @@ export function StockChart({
       </View>
       <Text style={{ color: c.muted, fontSize: 13, lineHeight: 20 }}>
         {total
-          ? "Para reponer: productos con unidades que alcanzaron su mínimo. Sin existencias se muestra por separado."
+          ? "Para reponer: productos que alcanzaron la cantidad configurada para alertar poco stock. Sin existencias se muestra por separado."
           : "Todavía no hay productos. El gráfico se completará con tu inventario real."}
       </Text>
     </Card>

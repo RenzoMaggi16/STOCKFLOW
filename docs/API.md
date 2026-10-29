@@ -210,3 +210,8 @@ Clientes aceptan localidad, provincia, latitud (-90..90) y longitud (-180..180).
 `POST /api/geocode {"address":"dirección, localidad, provincia"}`: admin/empleado; máximo 10 consultas/minuto por IP; devuelve hasta cinco candidatos con latitud,longitud,direccion. No guarda automáticamente. 503 sin proveedor configurado, 502 ante fallo externo. El endpoint del proveedor y la clave son privados del backend.
 
 OAuth Facebook: `/api/auth/social/facebook/...`, mismo flujo de state, ticket y prueba de posesión que los proveedores existentes. El correo se verifica por StockFlow; no se vincula silenciosamente una cuenta existente sin verificación del proveedor.
+# Valores configurables de cajas
+
+`GET /product-values` devuelve `campos: [{id,nombre,opciones}]` de la distribuidora activa. `PUT /product-values` permite a admin/encargado configurar hasta 20 características y 40 opciones por característica. Opciones vacías permiten texto libre. Se conservan los identificadores base size/type/dimensiones. Las características adicionales usan identificadores c_ y se guardan en el objeto `atributos` del producto. Cambiar opciones no modifica productos anteriores.
+
+size/type aceptan texto de hasta 100 caracteres; dimensiones hasta 150. stock_minimo mantiene el nombre de API y se presenta como «Alertar poco stock»: alerta dentro de la aplicación cuando stock <= stock_minimo. No envía notificaciones push.

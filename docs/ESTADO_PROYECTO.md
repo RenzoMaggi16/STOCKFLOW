@@ -1,5 +1,7 @@
 # Estado vigente — cajas de cartón — 29/10/2026
 
+Actualización de valores: Más → Valores de cajas permite a admin/encargado configurar nombres y opciones por distribuidora, con Forma incluida y características adicionales. Productos conservan valores históricos y medidas editables. «Alertar poco stock» configura el umbral visual inclusivo por producto (stock <= unidades). Migración 010 aplicada a la base configurada. Probado por HTTP/SQL: guardado, aislamiento y rechazo de edición para empleados.
+
 ## Implementado
 Catálogo de cajas con tamaño/tipo y búsqueda por nombre/SKU; campos descriptivos e imagen opcional; seed idempotente de 12 cajas con movimientos auditados. Temas Claro/Oscuro/Automático persistidos, paleta central y componentes reactivos. Dashboard SQL por rol y cuatro pestañas con Más. Mapa Android/web Leaflet/OpenStreetMap sin clave con marcadores de entregas asignadas, ubicación foreground, Google Maps y acciones reutilizadas del pedido. Clientes con localidad/provincia/coordenadas y geocodificación configurable. Facebook restaurado conservando Discord en backend y las identidades históricas.
 

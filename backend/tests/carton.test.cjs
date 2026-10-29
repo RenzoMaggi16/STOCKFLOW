@@ -4,8 +4,9 @@ const assert=require('node:assert/strict');
 const {listSchema,productSchema}=require('../dist/validators/inventory');
 const {geocode}=require('../dist/services/geocoding.service');
 test('catálogo rechaza filtros desconocidos, límites inválidos y edición directa de stock',()=>{
-  assert.equal(listSchema.safeParse({size:'gigante'}).success,false);
-  assert.equal(listSchema.safeParse({type:'industrial'}).success,false);
+  assert.equal(listSchema.safeParse({size:'gigante'}).success,true);
+  assert.equal(listSchema.safeParse({type:'industrial'}).success,true);
+  assert.equal(listSchema.safeParse({size:'x'.repeat(101)}).success,false);
   assert.equal(listSchema.safeParse({limit:101}).success,false);
   assert.equal(listSchema.safeParse({color:'verde'}).success,false);
   assert.equal(productSchema.partial().safeParse({stock:10}).success,false);
