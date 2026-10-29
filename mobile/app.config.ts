@@ -24,7 +24,6 @@ const config: ExpoConfig = {
       foregroundImage: "./assets/icon.png",
       backgroundColor: "#F7F9F7",
     },
-    permissions: ["android.permission.ACCESS_COARSE_LOCATION", "android.permission.ACCESS_FINE_LOCATION"],
     blockedPermissions: [
       "android.permission.ACCESS_BACKGROUND_LOCATION",
       "android.permission.FOREGROUND_SERVICE_LOCATION",
@@ -48,7 +47,6 @@ const config: ExpoConfig = {
       },
     ],
     "expo-router",
-    ["expo-location", { locationWhenInUsePermission: "Mostrar tu ubicación mientras consultás tus entregas.", isAndroidBackgroundLocationEnabled: false, isAndroidForegroundServiceEnabled: false }],
     "expo-font",
     "expo-secure-store",
     "expo-web-browser",

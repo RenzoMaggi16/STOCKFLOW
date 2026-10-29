@@ -76,7 +76,7 @@ const {spawn,execFileSync}=require('node:child_process');
     await driver.page.getByRole('tab',{name:'Inicio'}).click();
     await expect(driver.page.getByRole('tab')).toHaveCount(4);
     await driver.page.screenshot({path:path.resolve(__dirname,'../../docs/carton-repartidor-claro.png'),fullPage:true});
-    await driver.page.getByRole('tab',{name:'Mapa'}).click();
+    await driver.page.getByRole('tab',{name:'Indicaciones'}).click();
     await expect(driver.page.getByText('No hay entregas pendientes asignadas.')).toBeVisible();
     await driver.page.getByRole('tab',{name:'Perfil'}).click();
     await driver.page.getByRole('button',{name:'Oscuro',exact:true}).click();

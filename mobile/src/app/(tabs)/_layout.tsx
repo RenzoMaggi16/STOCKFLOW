@@ -64,7 +64,7 @@ export default function TabsLayout() {
           ["clients", "Clientes", "people-outline", role === "empleado"],
           ["orders", role === "repartidor" ? "Entregas" : "Pedidos", "receipt-outline", true],
           ["movements", "Movimientos", "swap-vertical-outline", false],
-          ["map", "Mapa", "map-outline", role === "repartidor"],
+          ["map", "Indicaciones", "navigate-outline", role === "repartidor"],
           ["more", "Más", "menu-outline", role !== "repartidor"],
           ["profile", "Perfil", "person-outline", role === "repartidor"],
         ] as [string, string, string, boolean][]

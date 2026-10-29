@@ -1,5 +1,7 @@
 # Estado vigente — cajas de cartón — 29/10/2026
 
+Repartidor: se retiró el mapa integrado y la solicitud de ubicación. La pestaña Indicaciones ofrece Google Maps externo por entrega, con coordenadas o dirección. Se retiraron las dependencias de WebView y ubicación.
+
 Actualización de valores: Más → Valores de cajas permite a admin/encargado configurar nombres y opciones por distribuidora, con Forma incluida y características adicionales. Productos conservan valores históricos y medidas editables. «Alertar poco stock» configura el umbral visual inclusivo por producto (stock <= unidades). Migración 010 aplicada a la base configurada. Probado por HTTP/SQL: guardado, aislamiento y rechazo de edición para empleados.
 
 ## Implementado
