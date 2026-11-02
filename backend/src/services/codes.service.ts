@@ -24,6 +24,7 @@ export async function requestCode(
 ) {
   requireMail();
   const id = randomUUID();
+  let activeChallengeId = id;
   const code = String(randomInt(100000, 1000000));
   const user = await transaction(async (conn) => {
     const [rows] = await conn.execute<RowDataPacket[]>(
@@ -39,10 +40,13 @@ export async function requestCode(
       return null;
     if (type === "email" && u.email_verificado) return null;
     const [recent] = await conn.execute<RowDataPacket[]>(
-      "SELECT id FROM verificaciones WHERE usuario_id=? AND tipo=? AND creado_en>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 60 SECOND)",
+      "SELECT id FROM verificaciones WHERE usuario_id=? AND tipo=? AND utilizado_en IS NULL AND expira_en>UTC_TIMESTAMP() AND creado_en>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 60 SECOND) ORDER BY creado_en DESC LIMIT 1",
       [u.id, type],
     );
-    if (recent.length) return null; // Misma respuesta pública para evitar enumeración.
+    if (recent.length) {
+      activeChallengeId = recent[0].id;
+      return null; // Misma respuesta pública para evitar enumeración y permitir usar el código ya despachado.
+    }
     await conn.execute(
       "UPDATE verificaciones SET utilizado_en=UTC_TIMESTAMP() WHERE usuario_id=? AND tipo=? AND utilizado_en IS NULL",
       [u.id, type],
@@ -65,9 +69,9 @@ export async function requestCode(
     }
   }
   return {
-    challengeId: id,
+    challengeId: activeChallengeId,
     message:
-      "Si la cuenta corresponde y no se envió un código recientemente, recibirás un correo. Esperá 60 segundos antes de reenviar.",
+      "Si la cuenta corresponde, recibirás un código en tu correo. Esperá 60 segundos antes de solicitar otro.",
   };
 }
 export async function consume<T>(
@@ -151,7 +155,7 @@ export async function resetPassword(
   const hash = await bcrypt.hash(password, 12);
   return consume(id, code, "reset", async (conn, u) => {
     await conn.execute(
-      "UPDATE usuarios SET password_hash=?,token_version=token_version+1 WHERE id=?",
+      "UPDATE usuarios SET password_hash=?,email_verificado=1,token_version=token_version+1 WHERE id=?",
       [hash, u.id],
     );
     await conn.execute(

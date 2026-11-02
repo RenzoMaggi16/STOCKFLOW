@@ -60,6 +60,8 @@ export async function register(
 ) {
   const passwordHash = await bcrypt.hash(password, 12);
   const conn = await pool.getConnection();
+  let session;
+  let newUserId: number;
   try {
     await conn.beginTransaction();
     const [roles] = await conn.execute<RowDataPacket[]>(
@@ -70,12 +72,12 @@ export async function register(
       "INSERT INTO usuarios(nombre,email,password_hash,rol_id) VALUES(?,?,?,?)",
       [nombre, email, passwordHash, roles[0].id],
     );
+    newUserId = r.insertId;
     const [rows] = await conn.execute<UserRow[]>(`${selectUser} WHERE u.id=?`, [
-      r.insertId,
+      newUserId,
     ]);
-    const session = await issueSession(conn, rows[0]);
+    session = await issueSession(conn, rows[0]);
     await conn.commit();
-    return session;
   } catch (e: unknown) {
     await conn.rollback();
     if ((e as { code?: string }).code === "ER_DUP_ENTRY")
@@ -84,6 +86,20 @@ export async function register(
   } finally {
     conn.release();
   }
+
+  let verificationChallenge;
+  try {
+    verificationChallenge = await requestCode(email, "email", newUserId);
+  } catch (e) {
+    console.warn("No se pudo enviar el correo de verificación inicial:", e);
+  }
+
+  return {
+    ...session,
+    ...(verificationChallenge?.challengeId
+      ? { challengeId: verificationChallenge.challengeId }
+      : {}),
+  };
 }
 export async function login(email: string, password: string) {
   const [rows] = await pool.execute<UserRow[]>(

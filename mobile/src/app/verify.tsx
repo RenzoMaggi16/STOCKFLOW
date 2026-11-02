@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "../contexts/AuthContext";
 import { session } from "../services/api";
 import { errorMessage } from "../services/session";
@@ -7,20 +7,27 @@ import { Page, Card, Button, Status } from "../components/ui";
 import { EntityForm } from "../components/EntityForm";
 import { IdentityBanner } from "../components/WorkspaceDesign";
 export default function Verify() {
+  const params = useLocalSearchParams<{ challengeId?: string }>();
+  return <VerifyForm key={params.challengeId || 'request'} challengeId={params.challengeId} />;
+}
+function VerifyForm({challengeId}:{challengeId?:string}) {
   const auth = useAuth();
-  const [id, setId] = useState(""),
-    [message, setMessage] = useState(""),
-    [busy, setBusy] = useState(false);
+  const [id, setId] = useState(challengeId || "");
+  const [message, setMessage] = useState(
+    challengeId ? "Te enviamos un código de verificación a tu correo." : "",
+  );
+  const [busy, setBusy] = useState(false);
+
   if (!auth.user) return <Redirect href="/login" />;
   if (auth.user.email_verificado) return <Redirect href="/" />;
   return (
     <Page
       title="Verificá tu correo"
-      subtitle={`Enviaremos un código a ${auth.user.email}. Dura 10 minutos.`}
+      subtitle={id ? `Ingresá el código para ${auth.user.email}. Dura 10 minutos.` : `Solicitá un código para verificar ${auth.user.email}.`}
     >
       <IdentityBanner title="Un paso más para empezar." subtitle="Confirmá tu correo para crear tu distribuidora y trabajar con tu equipo." badge="PROTEGÉ TU CUENTA" icon="mail-outline"/>
       <Button
-        title="Enviar / reenviar código"
+        title={id ? "Reenviar código" : "Enviar código"}
         disabled={busy}
         onPress={() => {
           setBusy(true);

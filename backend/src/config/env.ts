@@ -13,6 +13,7 @@ const schema = z.object({
   JWT_ACCESS_SECRET: z.string().min(32),
   JWT_REFRESH_SECRET: z.string().min(32),
   SMTP_HOST: z.string().default(""),
+  BREVO_API_KEY: z.string().trim().default(""),
   SMTP_PORT: z.coerce.number().int().default(587),
   SMTP_USER: z.string().default(""),
   SMTP_PASSWORD: z.string().default(""),

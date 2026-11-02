@@ -64,13 +64,16 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "recover" }) {
 
   async function accept(data: any) {
     await auth.accept(data);
-    router.replace(
-      data.requiresMfa
-        ? "/second-factor"
-        : data.user.email_verificado
-          ? "/"
-          : "/verify",
-    );
+    if (data.requiresMfa) {
+      router.replace("/second-factor");
+    } else if (data.user.email_verificado) {
+      router.replace("/");
+    } else {
+      router.replace({
+        pathname: "/verify",
+        params: data.challengeId ? { challengeId: data.challengeId } : {},
+      });
+    }
   }
 
   function validate() {
@@ -113,12 +116,16 @@ export function AuthForm({ mode }: { mode: "login" | "register" | "recover" }) {
     setBusy(true);
     try {
       if (mode === "recover") {
+        const trimmedEmail = email.trim();
         const { data } = await session.publicApi.post("/auth/forgot-password", {
-          email: email.trim(),
+          email: trimmedEmail,
         });
         router.push({
           pathname: "/reset-password",
-          params: { challengeId: data.data.challengeId },
+          params: {
+            challengeId: data.data.challengeId,
+            email: trimmedEmail,
+          },
         });
         return;
       }

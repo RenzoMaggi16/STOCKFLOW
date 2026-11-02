@@ -1,5 +1,6 @@
 // Configuración exclusivamente de pruebas, nunca usar estos secretos en producción.
 Object.assign(process.env, {
+  BREVO_API_KEY: "",
   SMTP_HOST: "", SMTP_USER: "", SMTP_PASSWORD: "", SMTP_FROM: "StockFlow <test@example.com>",
   GOOGLE_CLIENT_ID: "", GOOGLE_CLIENT_SECRET: "",
   GITHUB_CLIENT_ID: "", GITHUB_CLIENT_SECRET: "",

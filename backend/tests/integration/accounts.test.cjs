@@ -399,6 +399,48 @@ test("Cuentas, reportes y correo SMTP local real", async (t) => {
         );
       },
     );
+    await t.test("Brevo HTTPS: registro, reenvío, verificación y recuperación completa", async () => {
+      const env = require("../../dist/config/env").env;
+      const originalFetch = global.fetch;
+      const sent = [];
+      let rejectMail = false;
+      env.BREVO_API_KEY = "test-api-key";
+      global.fetch = async (url, options) => {
+        assert.equal(url, "https://api.brevo.com/v3/smtp/email");
+        if (rejectMail) return new Response("unavailable", { status: 503 });
+        sent.push(JSON.parse(options.body));
+        return Response.json({ messageId: "test" }, { status: 201 });
+      };
+      const codeFromMail = () => /\b(\d{6})\b/.exec(sent.at(-1).textContent)[1];
+      try {
+        const registered = await auth.register("Correo HTTPS", "https@example.com", "ClaveSegura123");
+        assert.ok(registered.challengeId);
+        assert.equal(sent.length, 1);
+        const verificationCode = codeFromMail();
+        const retry = await codes.requestCode("https@example.com", "email");
+        assert.equal(retry.challengeId, registered.challengeId);
+        assert.equal(sent.length, 1);
+        await codes.verifyEmail(retry.challengeId, verificationCode);
+        assert.equal((await auth.me(registered.user.id)).email_verificado, true);
+        await assert.rejects(codes.verifyEmail(retry.challengeId, verificationCode));
+
+        rejectMail = true;
+        await assert.rejects(codes.requestCode("https@example.com", "reset"), (e) => e.code === "MAIL_UNAVAILABLE");
+        rejectMail = false;
+        const reset = await codes.requestCode("https@example.com", "reset");
+        const resetCode = codeFromMail();
+        const resent = await codes.requestCode("https@example.com", "reset");
+        assert.equal(resent.challengeId, reset.challengeId);
+        await codes.resetPassword(reset.challengeId, resetCode, "NuevaClave456");
+        await assert.rejects(auth.login("https@example.com", "ClaveSegura123"));
+        assert.ok((await auth.login("https@example.com", "NuevaClave456")).accessToken);
+        await assert.rejects(auth.rotateRefresh(registered.refreshToken));
+        await assert.rejects(codes.resetPassword(reset.challengeId, resetCode, "OtraClave789"));
+      } finally {
+        global.fetch = originalFetch;
+        env.BREVO_API_KEY = "";
+      }
+    });
     await t.test("Discord: identidad, permisos y consumo único", async () => {
       const oauth = require("../../dist/services/oauth.service");
       const env = require("../../dist/config/env").env;
